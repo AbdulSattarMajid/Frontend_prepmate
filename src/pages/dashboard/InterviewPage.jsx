@@ -6,6 +6,7 @@ import SetupPhase from './phases/SetupPhase';
 import VoiceRound from './phases/VoiceRound';
 import CodingRound from './phases/CodingRound';
 import ReportPhase from './phases/ReportPhase';
+import Button from '../../components/ui/Button'; 
 
 const LLM_ROLES = ["MERN Stack", "Frontend (React)", "Python Backend", "MySQL / Databases"];
 
@@ -52,6 +53,52 @@ const InterviewPage = ({ onNav }) => {
   const capturedFramesRef = useRef([]);
 
   const [reportData, setReportData] = useState(null);
+
+  // 🌟 THE BULLETPROOF MEMORY BRIDGE
+  useEffect(() => {
+    let mounted = true;
+
+    const checkExistingSession = async () => {
+      // Did we leave a flag here earlier?
+      if (localStorage.getItem('prepmate_evaluating') === 'true') {
+        
+        // Immediately show the loading screen so they don't see the setup form
+        setPhase('finalizing'); 
+        
+        try {
+          const data = await interviewApi.getReport();
+          
+          if (mounted) {
+            // 🌟 If the report actually has an overall score, it's done!
+            if (data && data.summary && data.summary.overall_score !== undefined) {
+              localStorage.removeItem('prepmate_evaluating');
+              setReportData(data);
+              setPhase('report');
+            } 
+            // 🌟 If it's still officially processing, jump back into the loop
+            else if (data?.summary?.evaluation_status === 'processing') {
+              loadReport();
+            } 
+            // 🌟 Failsafe: drop back to setup
+            else {
+              localStorage.removeItem('prepmate_evaluating');
+              setPhase('setup');
+            }
+          }
+        } catch (err) {
+          if (mounted) {
+            localStorage.removeItem('prepmate_evaluating');
+            setPhase('setup');
+          }
+        }
+      }
+    };
+
+    checkExistingSession();
+
+    return () => { mounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- NATIVE VOICE UTIL ---
   const speakText = (text) => {
@@ -100,28 +147,32 @@ const InterviewPage = ({ onNav }) => {
 
   // --- API HANDLERS ---
   
-  // 🌟 UPDATED: The Polling Engine for the final report
   const loadReport = async () => {
     setLoading(true);
     window.speechSynthesis.cancel();
     stopCamera();
     
+    // Set the safety flag so they can leave the page
+    localStorage.setItem('prepmate_evaluating', 'true');
+    setPhase('finalizing'); 
+    
     try {
       let data = await interviewApi.getReport();
 
-      // THE POLLING LOOP: If the AI is still chewing on the last few questions in the background...
+      // The Polling Loop
       while (data?.summary?.evaluation_status === 'processing') {
-        setPhase('finalizing'); 
-        
-        // Wait 3 seconds, then ping the backend again
         await new Promise(resolve => setTimeout(resolve, 3000)); 
         data = await interviewApi.getReport(); 
       }
 
+      // Analysis complete! Remove the flag.
+      localStorage.removeItem('prepmate_evaluating');
       setReportData(data);
       setPhase('report');
     } catch (err) {
-      alert("Failed to fetch report data.");
+      localStorage.removeItem('prepmate_evaluating');
+      alert("Failed to fetch report data. Please check your dashboard later.");
+      setPhase('setup'); // Kick back to setup if server crashes
     } finally {
       setLoading(false);
     }
@@ -182,6 +233,9 @@ const InterviewPage = ({ onNav }) => {
 
   const startSession = async () => {
     setLoading(true);
+    // Safety clear in case a previous session bugged out
+    localStorage.removeItem('prepmate_evaluating');
+    
     try {
       const testStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       testStream.getTracks().forEach(track => track.stop());
@@ -244,29 +298,46 @@ const InterviewPage = ({ onNav }) => {
     }
   };
 
-  // 🌟 UPDATED: Instantly moves to the next question while AI works in the background
   const handleVoiceSubmit = async (audioBlob, finalFrames) => {
     try {
-      // Passes questionsCompleted as the questionIndex
       await interviewApi.processVoiceAnswer(
         audioBlob, finalFrames, currentQuestion, role, level, expectedPoints, qType, questionsCompleted
       );
       
       const nextIndex = questionsCompleted + 1;
       setQuestionsCompleted(nextIndex);
-      handleNextQuestion(nextIndex); // Instantly trigger the next question
+      handleNextQuestion(nextIndex); 
     } catch (err) {
       alert("Failed to process audio.");
       setLoading(false);
     }
   };
 
-  // 🌟 UPDATED: Now injects the question_index into the payload for async tracking
-  const handleCodeSubmit = async () => {
+const handleCodeSubmit = async () => {
     if (!codeAnswer.trim()) return;
     setLoading(true);
     try {
-      if (qType === "theoretical_code") {
+      const langKey = selectedLanguage === "javascript" ? "JavaScript" : "Python";
+      let functionName = entryPoints[langKey] || "solution";
+
+      // 🌟 THE FIX: SMART FUNCTION NAME EXTRACTION
+      // We read the user's actual code to see what they named their function!
+      if (selectedLanguage === "python") {
+        // Looks for "def my_func"
+        const pyMatch = codeAnswer.match(/def\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+        if (pyMatch) functionName = pyMatch[1];
+      } else {
+        // Looks for "function myFunc" or "const myFunc ="
+        const jsMatch = codeAnswer.match(/function\s+([a-zA-Z_][a-zA-Z0-9_]*)/) || 
+                        codeAnswer.match(/(?:const|let|var)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(?:function|\()/);
+        if (jsMatch) functionName = jsMatch[1];
+      }
+
+      console.log("--- SMART SANDBOX SUBMISSION ---");
+      console.log("Extracted Function Name:", functionName);
+      console.log("Tests Array:", codingTests);
+
+      if (qType === "theoretical_code" || !codingTests || codingTests.length === 0) {
         await interviewApi.processTextAnswer({
           question: currentQuestion, 
           answer_text: codeAnswer, 
@@ -274,28 +345,26 @@ const InterviewPage = ({ onNav }) => {
           level,
           expected_points: Array.isArray(expectedPoints) ? expectedPoints.join('\n') : expectedPoints,
           q_type: "theoretical_code",
-          question_index: questionsCompleted // NEW
+          question_index: questionsCompleted 
         });
       } else {
-        const langKey = selectedLanguage === "javascript" ? "JavaScript" : "Python";
         await interviewApi.evaluateCode({
           code: codeAnswer, 
           tests: codingTests, 
-          function_name: entryPoints[langKey] || "solution", 
+          function_name: functionName, // Now perfectly matches the user's code!
           language: selectedLanguage,
-          question_index: questionsCompleted // NEW
+          question_index: questionsCompleted 
         });
       }
       
       const nextIndex = questionsCompleted + 1;
       setQuestionsCompleted(nextIndex);
-      handleNextQuestion(nextIndex); // Instantly trigger the next question
+      handleNextQuestion(nextIndex); 
     } catch (err) {
-      alert("Evaluation failed.");
+      alert("Evaluation failed. Your backend sandbox may have crashed due to a syntax error.");
       setLoading(false);
     }
   };
-
   // --- RENDER ROUTER ---
   switch (phase) {
     case 'setup':
@@ -305,13 +374,19 @@ const InterviewPage = ({ onNav }) => {
     case 'coding_round':
       return <CodingRound questionsCompleted={questionsCompleted} totalTasks={totalTasks} currentQuestion={currentQuestion} codeAnswer={codeAnswer} setCodeAnswer={setCodeAnswer} selectedLanguage={selectedLanguage} setSelectedLanguage={setSelectedLanguage} handleCodeSubmit={handleCodeSubmit} loading={loading} loadReport={loadReport} />;
     
-    // 🌟 NEW: The holding screen while Llama finishes the background queue
     case 'finalizing':
       return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 transition-colors duration-300">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 transition-colors duration-300 animate-fade-up">
            <div className="w-16 h-16 border-4 border-brand-lt border-t-transparent rounded-full animate-spin transition-colors duration-300"></div>
            <h2 className="text-3xl font-bold text-txt transition-colors duration-300">Finalizing Evaluation...</h2>
-           <p className="text-muted max-w-md transition-colors duration-300">Our AI is finishing up the analysis of your latest answers. Your comprehensive report will appear in just a moment.</p>
+           <p className="text-muted max-w-md transition-colors duration-300 mb-4">
+             Our AI is finishing up the analysis. This can take a few minutes. 
+             You can safely leave this page and check back later!
+           </p>
+           
+           <Button variant="secondary" onClick={() => onNav('dashboard')}>
+             Return to Dashboard
+           </Button>
         </div>
       );
       

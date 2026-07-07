@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/ui/Logo';
 import { getPasswordStrength, sanitiseInput } from '../../utils/helpers';
 
-const BASE_URL = 'https://prepmate-auth-module.onrender.com';
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL ;
 
 const SignupPage = () => {
   const navigate = useNavigate();

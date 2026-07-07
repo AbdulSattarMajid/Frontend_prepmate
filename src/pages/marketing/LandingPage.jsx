@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -14,8 +15,12 @@ import {
   Rocket, 
   Star, 
   Play, 
-  User 
+  User,
+  X // <-- Added X icon for the close button
 } from 'lucide-react';
+
+// 👇 Replace 'demo.mp4' with your actual video filename in the folder
+import demoVideo from './FYP_Reel.mp4'; 
 
 const FEATURES = [
   { icon: <BarChart className="w-8 h-8 text-brand-lt" />, title: 'Real-time Feedback',  desc: 'Get instant scoring on tone, pace, and keywords during practice. Our AI detects filler words and suggests improvements on the fly.' },
@@ -36,26 +41,22 @@ const STEPS = [
   { n: 3, icon: <TrendingUp className="w-6 h-6 text-white" />, title: 'Get Actionable Feedback', desc: 'Receive detailed analytics on your performance and a personalised improvement plan.' },
 ];
 
-// CHANGED: image URLs removed from testimonial objects
 const TESTIMONIALS = [
   { 
     name: 'Sufyan Tipu', 
     role: 'PM at Spotify', 
-    // image removed
     text: 'PrepMate caught that I was speaking too fast when nervous. Real-time feedback was a game changer for my final rounds.', 
     stars: 5 
   },
   { 
     name: 'Muhammad Uzair', 
     role: 'SWE at Google', 
-    // image removed
     text: 'The technical question bank is scary accurate. I was asked three questions from my PrepMate sessions in the actual interview!', 
     stars: 5 
   },
   { 
     name: 'Anonymous', 
     role: 'UX Designer at Airbnb', 
-    // image removed
     text: 'I struggled with behavioural questions. The STAR coaching built into PrepMate made my answers dramatically more structured.', 
     stars: 5 
   },
@@ -63,6 +64,8 @@ const TESTIMONIALS = [
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  // 👇 Added state to control video modal visibility
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   return (
     <div className="min-h-screen">
@@ -78,7 +81,13 @@ const LandingPage = () => {
           </p>
           <div className="flex flex-wrap gap-3 mb-8">
             <Button size="lg" onClick={() => navigate('/signup')}>Get Started Free</Button>
-            <Button variant="ghost" size="lg" className="flex items-center gap-2">
+            {/* 👇 Added onClick to trigger the video modal */}
+            <Button 
+              variant="ghost" 
+              size="lg" 
+              className="flex items-center gap-2"
+              onClick={() => setShowVideoModal(true)}
+            >
               <Play className="w-4 h-4 fill-current" /> Watch Demo
             </Button>
           </div>
@@ -190,8 +199,8 @@ const LandingPage = () => {
           <h2 className="text-3xl sm:text-4xl font-black text-center mb-14">What Our Users Say</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {TESTIMONIALS.map(t => (
-              <Card key={t.name} className="p-7 flex flex-col gap-5 text-center items-center"> {/* Added text-center items-center */}
-                <div className="flex gap-1 text-amber-400 justify-center"> {/* Added justify-center */}
+              <Card key={t.name} className="p-7 flex flex-col gap-5 text-center items-center">
+                <div className="flex gap-1 text-amber-400 justify-center">
                   {[...Array(t.stars)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-current" />
                   ))}
@@ -199,15 +208,10 @@ const LandingPage = () => {
                 
                 <p className="text-muted text-sm leading-relaxed flex-1">"{t.text}"</p>
                 
-                {/* CHANGED: Restructured footer area for vertical layout and placeholder image */}
                 <div className="pt-2 border-t border-bdr2/50 mt-auto flex flex-col items-center gap-3">
-                  
-                  {/* Generic placeholder silhouette */}
                   <div className="w-12 h-12 rounded-full bg-card2 border border-bdr flex items-center justify-center text-ghost">
                     <User className="w-5 h-5" />
                   </div>
-
-                  {/* Name and Role details */}
                   <div>
                     <p className="font-semibold text-sm text-txt">{t.name}</p>
                     <p className="text-xs text-ghost">{t.role}</p>
@@ -244,6 +248,38 @@ const LandingPage = () => {
           <p className="text-xs text-ghost">© 2026 PrepMate, Inc.</p>
         </div>
       </footer>
+
+      {/* 👇 VIDEO MODAL COMPONENT */}
+      {showVideoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
+            onClick={() => setShowVideoModal(false)}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl border border-bdr z-10 animate-fade-up">
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowVideoModal(false)}
+              className="absolute top-4 right-4 z-20 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full transition-colors backdrop-blur-md"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Video Player */}
+            <video 
+              src={demoVideo} 
+              controls 
+              autoPlay 
+              className="w-full h-auto max-h-[85vh] object-contain outline-none"
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

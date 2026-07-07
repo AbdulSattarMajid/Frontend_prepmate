@@ -9,7 +9,7 @@ const TABS = [
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
-const BASE_URL = 'https://prepmate-auth-module.onrender.com';
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const SettingsPage = () => {
   // 🌟 Pulled token and setUser from AppContext to make the API call and update the UI globally
@@ -66,8 +66,7 @@ const SettingsPage = () => {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
-          // Note: Do NOT set 'Content-Type': 'application/json' when sending FormData.
-          // The browser automatically sets the correct multipart boundary for the file!
+ 
         },
         body: formData
       });

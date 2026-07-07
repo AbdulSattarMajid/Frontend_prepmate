@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Card from '../ui/Card';
 import Avatar from '../ui/Avatar';
 
-const BASE_URL = 'https://prepmate-auth-module.onrender.com';
+const BASE_URL =import.meta.env.VITE_AUTH_BASE_URL ;
 
 const CommunityWidgets = ({ totalPosts, trendingTags = [] }) => {
   const [topContributors, setTopContributors] = useState([]);

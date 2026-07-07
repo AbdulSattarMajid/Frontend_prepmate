@@ -90,7 +90,7 @@ const ResumeAnalyzer = () => {
       <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-txt transition-colors duration-300">Resume Analyzer</h1>
-          <p className="text-muted mt-2 text-sm transition-colors duration-300">Optimize your CV for Applicant Tracking Systems (ATS) and get AI-powered feedback.</p>
+          <p className="text-muted mt-2 text-sm transition-colors duration-300">Optimize your CV for Applicant Tracking Systems (ATS) and get feedback.</p>
         </div>
         {results && (
           <div className="flex gap-3">
@@ -212,7 +212,7 @@ const ResumeAnalyzer = () => {
           ) : loading ? (
              <div className="h-full min-h-[500px] border border-bdr rounded-2xl flex flex-col items-center justify-center text-center p-8 bg-card transition-colors duration-300">
                <div className="w-12 h-12 border-4 border-bdr2 border-t-brand rounded-full animate-spin mb-4"></div>
-               <p className="text-muted font-medium animate-pulse transition-colors duration-300">Running ATS extraction and AI checks...</p>
+               <p className="text-muted font-medium animate-pulse transition-colors duration-300">Running ATS extraction</p>
              </div>
           ) : (
             <div className="space-y-6 animate-fade-in-up">

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import DashSidebar from '../../components/layout/DashSidebar';
 import DashTopbar from '../../components/layout/DashTopbar';
-import { Briefcase } from 'lucide-react'; // 🌟 Added professional icon
+import { Briefcase } from 'lucide-react'; 
 
 // Dashboard Sub-pages
 import DashboardHome from './DashboardHome';
@@ -69,7 +69,6 @@ const DashboardShell = () => {
         </main>
       </div>
       
-      {/* 🌟 Floating admin button completely deleted! */}
     </div>
   );
 };

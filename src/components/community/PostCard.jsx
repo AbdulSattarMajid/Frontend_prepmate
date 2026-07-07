@@ -1,7 +1,8 @@
 import Card from '../ui/Card';
 import Avatar from '../ui/Avatar';
 import Badge from '../ui/Badge';
-import { useApp } from '../../context/AppContext'; // 🌟 1. Import AppContext
+import { useApp } from '../../context/AppContext';
+import { Pin, ArrowUp, MessageSquare, Eye, Link, Bookmark } from 'lucide-react'; 
 
 const TAG_COLORS = { 
   'Interview Experiences': 'blue', 
@@ -11,27 +12,30 @@ const TAG_COLORS = {
   'Question': 'orange' 
 };
 
-const PostCard = ({ post, isUpvoted, onUpvote, onClick, currentUserId, onEdit, onDelete }) => {
-  const { user } = useApp(); // 🌟 2. Get the global user object
+// 🌟 2. Added isSaved and onSave to props
+const PostCard = ({ post, isUpvoted, onUpvote, onClick, currentUserId, onEdit, onDelete, isSaved, onSave }) => {
+  const { user } = useApp(); 
   
-  // 🌟 3. NEW SECURITY CHECK: Are they the author OR an admin?
+  // Security check for edit/delete buttons
   const hasPermissions = user && (user._id === post.authorId || user.role === 'admin');
 
   return (
     <Card hover className={`p-5 cursor-pointer ${post.pinned ? 'border-brand/30 bg-brand/[0.03]' : ''}`} onClick={onClick}>
       <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
         <div className="flex items-center gap-2">
-          <Avatar name={post.author} size={24} />
-          <span className="font-bold text-sm text-txt">{post.author}</span>
-          <span className="text-xs text-ghost">• {post.time}</span>
+          <Avatar name={post.author?.name || post.author || 'Anonymous'} size={24} />
+          <span className="font-bold text-sm text-txt">{post.author?.name || post.author || 'Anonymous'}</span>
+          <span className="text-xs text-ghost">• {post.time || new Date(post.createdAt).toLocaleDateString()}</span>
         </div>
         
         <div className="flex items-center gap-3">
           {post.isAdmin && <Badge color="purple" size="sm">ADMIN</Badge>}
-          {post.pinned && <span className="text-ghost text-sm">📌</span>}
+          
+          {/* 🌟 Replaced Pin Emoji */}
+          {post.pinned && <Pin className="w-4 h-4 text-ghost" />}
+          
           {!post.isAdmin && !post.pinned && post.tag && <Badge color={TAG_COLORS[post.tag] || 'blue'} size="sm">{post.tag}</Badge>}
           
-          {/* 🌟 4. Check permissions here */}
           {hasPermissions && (
             <div className="flex gap-3 ml-2 border-l border-bdr pl-3" onClick={e => e.stopPropagation()}>
               <button 
@@ -41,7 +45,7 @@ const PostCard = ({ post, isUpvoted, onUpvote, onClick, currentUserId, onEdit, o
                 Edit
               </button>
               <button 
-                onClick={() => onDelete(post.id)} 
+                onClick={() => onDelete(post._id || post.id)} 
                 className="text-[11px] text-red-400 hover:text-red-300 font-bold uppercase transition-colors bg-transparent border-0 p-0 cursor-pointer"
               >
                 Delete
@@ -74,24 +78,54 @@ const PostCard = ({ post, isUpvoted, onUpvote, onClick, currentUserId, onEdit, o
         </div>
       )}
 
+      {/* FOOTER ACTIONS */}
       <div className="flex items-center justify-between text-xs font-semibold text-ghost pt-1" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-5">
+          
+          {/* 🌟 Replaced Upvote Emoji */}
           <button 
-            onClick={() => onUpvote(post.id)}
+            onClick={() => onUpvote(post._id || post.id)}
             className={`flex items-center gap-1.5 bg-transparent border-0 transition-colors ${isUpvoted ? 'text-brand-lt' : 'hover:text-txt'} cursor-pointer`}
           >
-            <span className="text-base">↑</span> {post.upvotes}
+            <ArrowUp className={`w-4 h-4 ${isUpvoted ? 'text-brand-lt' : ''}`} strokeWidth={3} /> 
+            {post.upvotes?.length || post.upvotes || 0}
           </button>
+          
+          {/* 🌟 Replaced Comment Emoji */}
           <button className="flex items-center gap-1.5 bg-transparent border-0 hover:text-txt transition-colors cursor-pointer" onClick={onClick}>
-            <span className="text-sm">💬</span> {post.comments} Comments
+            <MessageSquare className="w-4 h-4" /> 
+            {post.comments?.length || post.commentCount || post.comments || 0} Comments
           </button>
-          {post.views > 0 && (
+          
+          {/* 🌟 Replaced View Emoji */}
+          {(post.views > 0 || post.views === 0) && (
             <span className="flex items-center gap-1.5 cursor-default">
-              <span className="text-sm">👁</span> {post.views}
+              <Eye className="w-4 h-4" /> {post.views}
             </span>
           )}
         </div>
-        <button className="bg-transparent border-0 text-lg hover:text-txt transition-colors cursor-pointer">🔗</button>
+        
+        <div className="flex items-center gap-4">
+          {/* 🌟 NEW: Bookmark/Save Icon */}
+          <button 
+            onClick={() => onSave(post._id || post.id)}
+            className={`bg-transparent border-0 transition-colors cursor-pointer flex items-center justify-center p-1 rounded-md hover:bg-card2 ${isSaved ? 'text-purple-500' : 'text-ghost hover:text-txt'}`}
+          >
+            <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current text-purple-500' : ''}`} />
+          </button>
+
+          {/* 🌟 Replaced Link Emoji */}
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/community/post/${post._id || post.id}`);
+              alert('Link copied to clipboard!');
+            }}
+            className="bg-transparent border-0 hover:text-txt transition-colors cursor-pointer"
+          >
+            <Link className="w-4 h-4" />
+          </button>
+        </div>
+
       </div>
     </Card>
   );

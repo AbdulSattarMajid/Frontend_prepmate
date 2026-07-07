@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useApp } from './context/AppContext';
-
+import PaymentSuccessPage from './pages/dashboard/PaymentSuccessPage';
 // Layout
 import Navbar from './components/layout/Navbar';
 
@@ -31,6 +31,7 @@ const App = () => {
         <Route path="/" element={<><Navbar /><LandingPage /></>} />
         <Route path="/premium" element={<><Navbar /><PremiumPage /></>} />
         
+        <Route path="/success" element={<PaymentSuccessPage />} />
         {/* 🌟 ADDED FAQ ROUTE */}
         <Route path="/faq" element={<><Navbar /><FAQPage /></>} />
 

@@ -6,7 +6,7 @@ import Card from '../../components/ui/Card';
 import Avatar from '../../components/ui/Avatar';
 import { Shield, Users, CreditCard, DollarSign, TrendingDown, Wrench } from 'lucide-react'; // 🌟 Removed MoreHorizontal, we don't need it anymore
 
-const BASE_URL = 'https://prepmate-auth-module.onrender.com';
+const BASE_URL =import.meta.env.VITE_AUTH_BASE_URL;
 
 const AdminPage = ({ onNav }) => {
   const { token } = useApp();

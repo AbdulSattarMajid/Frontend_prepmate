@@ -29,29 +29,25 @@ const VoiceRound = ({
       </header>
 
       <main className="flex-1 min-h-0 flex flex-col items-center justify-center w-full max-w-[1200px] mx-auto px-6 py-4">
-        <div className="flex flex-col items-center shrink-0 mb-6 text-center">
-          <div className="px-4 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 text-[11px] font-bold tracking-wide uppercase mb-5">
-            {qType === 'behavioral' ? 'Behavioral Question' : 'Theoretical Question'}
-          </div>
-          <h1 className="text-2xl md:text-4xl font-bold max-w-4xl leading-snug mb-5 text-gray-100">
-            "{currentQuestion}"
-          </h1>
-          {qType === 'behavioral' && (
-            <div className="px-4 py-1.5 rounded-full bg-[#1A1F2B] border border-gray-700/50 text-gray-300 text-xs font-medium flex items-center gap-2">
-              <span className="text-yellow-400">💡</span> Tip: Use the STAR method (Situation, Task, Action, Result)
-            </div>
-          )}
-        </div>
-
-        <div className="relative w-full flex-1 max-h-[50vh] min-h-[300px] bg-gradient-to-b from-[#181D2A] to-[#10131B] rounded-[24px] border border-gray-800/80 shadow-2xl flex flex-col items-center justify-center overflow-hidden">
+        <div className="relative w-full flex-1 max-h-[75vh] min-h-[500px] bg-gradient-to-b from-[#181D2A] to-[#10131B] rounded-[24px] border border-gray-800/80 shadow-2xl flex flex-col items-center overflow-hidden">
+          
           {recording && (
-            <div className="absolute top-5 bg-[#251214] border border-red-500/30 text-gray-300 text-[11px] font-bold px-4 py-1.5 rounded-full flex items-center gap-2 z-20 shadow-lg">
+            <div className="absolute top-5 left-5 bg-[#251214] border border-red-500/30 text-gray-300 text-[11px] font-bold px-4 py-1.5 rounded-full flex items-center gap-2 z-20 shadow-lg">
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
               Recording Answer...
             </div>
           )}
 
-          <div className="relative flex flex-col items-center z-10 translate-y-[-10px]">
+          <div className="w-full flex flex-col items-center text-center px-8 md:px-16 pt-10 md:pt-14 z-20 pointer-events-none">
+            <div className="px-4 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 text-[11px] font-bold tracking-wide uppercase mb-5">
+              {qType === 'behavioral' ? 'Behavioral Question' : 'Theoretical Question'}
+            </div>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold max-w-4xl leading-snug text-gray-100 drop-shadow-xl">
+              "{currentQuestion}"
+            </h1>
+          </div>
+
+          <div className="relative flex-1 w-full flex flex-col items-center justify-center z-10 pb-10 pointer-events-none">
             <div className={`w-[110px] h-[110px] rounded-full bg-[#0F131D] flex items-center justify-center transition-all duration-300 border border-[#212A40] ${recording ? 'shadow-[0_0_50px_rgba(37,99,235,0.2)]' : ''}`}>
               <div className={`w-[90px] h-[90px] rounded-full flex items-center justify-center border-[2px] bg-[#141A29] transition-all duration-300 ${recording ? 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)]' : 'border-[#2D3B5A]'}`}>
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
@@ -69,7 +65,8 @@ const VoiceRound = ({
             )}
           </div>
 
-          <div className="absolute bottom-5 right-5 w-48 sm:w-60 aspect-[4/3] sm:aspect-video bg-[#0A0C10] rounded-xl border border-gray-700/60 shadow-2xl overflow-hidden group z-20">
+          {/* YOU: PiP CAMERA */}
+          <div className="absolute bottom-6 right-6 w-48 sm:w-60 aspect-[4/3] sm:aspect-video bg-[#0A0C10] rounded-xl border border-gray-700/60 shadow-2xl overflow-hidden group z-20">
             {camActive ? (
               <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover transform -scale-x-100" />
             ) : (
@@ -108,7 +105,6 @@ const VoiceRound = ({
             </button>
           </div>
 
-          {/* 🌟 Dynamic UI States Applied Here */}
           <div>
             {!recording ? (
                <button 

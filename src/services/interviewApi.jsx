@@ -1,4 +1,4 @@
-const AI_BASE_URL = 'http://52.184.100.46:8000'; 
+const AI_BASE_URL = import.meta.env.VITE_AI_BASE_URL ; 
 
 export const interviewApi = {
   resetSession: async () => {
@@ -10,7 +10,6 @@ export const interviewApi = {
   // --- WAKE UP PING ---
   wakeUpAI: async () => {
     try {
-      // Sending a silent request just to spin up the server and memory
       await fetch(`${AI_BASE_URL}/reset`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }

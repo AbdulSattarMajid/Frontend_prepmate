@@ -11,11 +11,12 @@ import CommunityWidgets from '../../components/community/CommunityWidgets';
 import PostCard from '../../components/community/PostCard';
 import { sanitiseInput } from '../../utils/helpers';
 
-const BASE_URL = 'https://prepmate-auth-module.onrender.com';
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const CommunityFeedPage = () => {
   const navigate = useNavigate();
-  const { user, token } = useApp();
+  // 🌟 Make sure setUser is pulled so we can update the global savedPosts state instantly
+  const { user, token, setUser } = useApp(); 
   
   const [posts, setPosts]         = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -35,9 +36,10 @@ const CommunityFeedPage = () => {
   const [postTitle, setPostTitle] = useState('');
   const [postBody, setPostBody]   = useState('');
   const [postTag, setPostTag]     = useState('Question');
-  
-  // State to hold the uploaded image file
   const [postImage, setPostImage] = useState(null);
+  
+  // 🌟 Anti-Spam Loading State
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --- DYNAMIC FETCH POSTS ---
   useEffect(() => {
@@ -120,9 +122,35 @@ const CommunityFeedPage = () => {
     }
   };
 
+  // --- HANDLE SAVE/BOOKMARK ---
+  const handleSavePost = async (postId) => {
+    if (!token) return alert("Please log in to save posts.");
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/forum/posts/${postId}/save`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await res.json();
+
+      if (data.success) {
+        setUser(prevUser => ({
+          ...prevUser,
+          savedPosts: data.savedPosts
+        }));
+      }
+    } catch (error) {
+      console.error("Error saving post:", error);
+    }
+  };
+
   // --- HANDLE CREATING OR EDITING A POST ---
   const handlePost = async () => {
-    if (!postTitle.trim() || !postBody.trim()) return;
+    // 🌟 Prevent running if already submitting
+    if (!postTitle.trim() || !postBody.trim() || isSubmitting) return; 
+    
+    setIsSubmitting(true); // Lock the button!
     
     try {
       const url = editingPostId 
@@ -157,12 +185,14 @@ const CommunityFeedPage = () => {
         }
         closeModal();
       } else {
-        // This alerts you if Cloudinary or the server rejects the upload
         alert(`Upload Failed: ${data.message}`);
       }
     } catch (err) {
       console.error("Failed to save post", err);
       alert("A network error occurred while uploading. Please check the console.");
+    } finally {
+      // 🌟 Always unlock the button when done
+      setIsSubmitting(false);
     }
   };
 
@@ -203,6 +233,7 @@ const CommunityFeedPage = () => {
     setPostBody('');
     setPostTag('Question');
     setPostImage(null); 
+    setIsSubmitting(false); // Failsafe unlock
   };
 
   const filtered = posts.filter(p =>
@@ -286,12 +317,18 @@ const CommunityFeedPage = () => {
                   time: new Date(post.createdAt).toLocaleDateString()
                 };
 
+                const isCurrentlySaved = user?.savedPosts?.includes(post._id);
+
                 return (
                   <PostCard 
                     key={post._id} 
                     post={postForCard} 
                     currentUserId={user?._id}
                     isUpvoted={user && post.upvotes?.includes(user._id)} 
+                    
+                    isSaved={isCurrentlySaved}
+                    onSave={() => handleSavePost(post._id)}
+
                     onUpvote={() => handleUpvote(post._id)} 
                     onEdit={() => openEditModal(postForCard)}
                     onDelete={() => handleDelete(post._id)}
@@ -340,9 +377,13 @@ const CommunityFeedPage = () => {
           </div>
 
           <div className="flex gap-3 justify-end pt-2">
-            <Button variant="ghost" onClick={closeModal}>Cancel</Button>
-            <Button onClick={handlePost} disabled={!postTitle.trim() || !postBody.trim()}>
-              {editingPostId ? "Save Changes" : "Post Discussion"}
+            {/* 🌟 Buttons dynamically disable while submitting */}
+            <Button variant="ghost" onClick={closeModal} disabled={isSubmitting}>Cancel</Button>
+            <Button 
+              onClick={handlePost} 
+              disabled={!postTitle.trim() || !postBody.trim() || isSubmitting}
+            >
+              {isSubmitting ? "Processing..." : (editingPostId ? "Save Changes" : "Post Discussion")}
             </Button>
           </div>
         </div>

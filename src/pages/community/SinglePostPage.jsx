@@ -9,7 +9,7 @@ import Textarea from '../../components/ui/Textarea';
 import Badge from '../../components/ui/Badge';
 import CommunityWidgets from '../../components/community/CommunityWidgets';
 
-const BASE_URL = 'https://prepmate-auth-module.onrender.com';
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL ;
 
 const TAG_COLORS = { 
   'Interview Experiences': 'blue', 
@@ -39,7 +39,6 @@ const SinglePostPage = () => {
     const fetchPostData = async () => {
       setLoading(true);
       try {
-        // 🌟 UPDATED: We added a fetch to get the total posts count for the widget
         const [postRes, commentsRes, statsRes] = await Promise.all([
           fetch(`${BASE_URL}/api/forum/posts/${id}`),
           fetch(`${BASE_URL}/api/forum/posts/${id}/comments`),
@@ -131,7 +130,7 @@ const SinglePostPage = () => {
     <div className="min-h-screen bg-deep">
       <nav className="px-6 py-4 border-b border-bdr flex justify-between items-center bg-deep">
         <Logo onClick={() => navigate('/')} />
-        <Button size="sm" variant="ghost" onClick={() => navigate('/community')}>← Back to Forum</Button>
+        <Button size="sm" variant="ghost" onClick={() => navigate('/community')}> Back to Forum</Button>
       </nav>
 
       <div className="max-w-[1100px] mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">

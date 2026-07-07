@@ -1,5 +1,5 @@
 // src/services/resumeApi.js
-const RESUME_API_URL = 'https://resume-analysis-module.onrender.com';
+const RESUME_API_URL =import.meta.env.VITE_RESUME_BASE_URL;
 
 export const resumeApi = {
   analyze: async (file, role, jdText) => {
@@ -10,7 +10,7 @@ export const resumeApi = {
 
     const response = await fetch(`${RESUME_API_URL}/analyze`, {
       method: 'POST',
-      body: formData, // Browser automatically sets the correct multipart boundary
+      body: formData, 
     });
 
     if (!response.ok) {

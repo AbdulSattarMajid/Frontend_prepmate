@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 const AppContext = createContext(null);
 export const useApp = () => useContext(AppContext);
 
-const BASE_URL = 'https://prepmate-auth-module.onrender.com';
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL ;
 
 const snatchTokenFromUrl = () => {
   if (typeof window === 'undefined') return null;
@@ -11,7 +11,7 @@ const snatchTokenFromUrl = () => {
   const urlToken = urlParams.get('token');
   
   if (urlToken) {
-    console.log("🔑 Intercepted Google Token on mount!");
+    console.log(" Intercepted Google Token on mount!");
     localStorage.setItem('prepMateToken', urlToken);
     window.history.replaceState({}, document.title, window.location.pathname);
     return urlToken;

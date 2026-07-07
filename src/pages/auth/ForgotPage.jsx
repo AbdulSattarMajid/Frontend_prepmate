@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { getPasswordStrength } from '../../utils/helpers';
 
-const BASE_URL = 'https://prepmate-auth-module.onrender.com';
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL ;
 
 const ForgotPage = () => {
   const navigate = useNavigate();
