@@ -1,28 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import Badge from '../../components/ui/Badge';
 import StatCard from '../../components/ui/StatCard';
 import Card from '../../components/ui/Card';
 import Avatar from '../../components/ui/Avatar';
-import { Shield, Users, CreditCard, DollarSign, TrendingDown, Wrench, Star, MessageSquare } from 'lucide-react';
+import { Shield, Users, CreditCard, DollarSign, TrendingDown, Wrench, Star, MessageSquare, Send, Radio, ShieldAlert } from 'lucide-react';
+import { io } from 'socket.io-client'; // 🌟 NEW: Socket import
 
 const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const AdminPage = ({ onNav }) => {
-  const { token } = useApp();
+  const { token, user } = useApp(); // 🌟 Grabbed 'user' to know who the admin is
   const [section, setSection] = useState('overview');
-  // 🌟 REPLACED 'content' with 'reviews'
-  const SECTIONS = ['overview','users','reviews','settings'];
+  
+  // 🌟 ADDED 'support' to the tabs
+  const SECTIONS = ['overview','users','reviews','support','settings'];
 
   // Users State
   const [usersList, setUsersList] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
-  // 🌟 Reviews State
+  // Reviews State
   const [reviewsList, setReviewsList] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
-  // Fetch Real Users
+  // 🌟 NEW: Admin Live Chat State
+  const [socket, setSocket] = useState(null);
+  const [activeChatUser, setActiveChatUser] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [broadcastInput, setBroadcastInput] = useState('');
+  const messagesEndRef = useRef(null);
+
+  // Fetch Real Users (Used for Overview, Users Tab, AND Support Tab)
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -42,7 +52,7 @@ const AdminPage = ({ onNav }) => {
     if (token) fetchUsers();
   }, [token]);
 
-  // 🌟 Fetch All Reviews when the tab is clicked
+  // Fetch All Reviews
   useEffect(() => {
     const fetchReviews = async () => {
       setLoadingReviews(true);
@@ -64,6 +74,29 @@ const AdminPage = ({ onNav }) => {
     if (token && section === 'reviews') fetchReviews();
   }, [token, section]);
 
+  // 🌟 NEW: Initialize Admin Socket Connection
+  useEffect(() => {
+    const newSocket = io(BASE_URL);
+    setSocket(newSocket);
+
+    // Listen for chat history when we click a user
+    newSocket.on('chat-history', (historyData) => {
+      setChatMessages(historyData);
+    });
+
+    // Listen for live incoming messages in the room we are viewing
+    newSocket.on('receive-support-message', (data) => {
+      setChatMessages((prev) => [...prev, data]);
+    });
+
+    return () => newSocket.disconnect();
+  }, []);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
   const handleDeleteUser = async (userId, userName) => {
     if (!window.confirm(`Are you absolutely sure you want to delete ${userName}? This cannot be undone.`)) return;
 
@@ -76,6 +109,7 @@ const AdminPage = ({ onNav }) => {
 
       if (data.success) {
         setUsersList(prev => prev.filter(u => u._id !== userId));
+        if (activeChatUser?._id === userId) setActiveChatUser(null);
       } else {
         alert(data.message);
       }
@@ -84,9 +118,7 @@ const AdminPage = ({ onNav }) => {
     }
   };
 
-  // 🌟 Toggle Featured Status function
   const handleToggleFeature = async (reviewId, isCurrentlyFeatured) => {
-    // Safety check before sending request
     if (!isCurrentlyFeatured) {
       const currentFeaturedCount = reviewsList.filter(r => r.isFeatured).length;
       if (currentFeaturedCount >= 3) {
@@ -103,7 +135,6 @@ const AdminPage = ({ onNav }) => {
       const data = await res.json();
 
       if (data.success) {
-        // Instantly update the UI without reloading
         setReviewsList(prev => prev.map(r => r._id === reviewId ? { ...r, isFeatured: !r.isFeatured } : r));
       } else {
         alert(data.message || "Failed to update status.");
@@ -113,15 +144,50 @@ const AdminPage = ({ onNav }) => {
     }
   };
 
+  // 🌟 NEW: Admin selects a user to chat with
+  const handleSelectChatUser = (student) => {
+    setActiveChatUser(student);
+    setChatMessages([]); // Clear screen while loading
+    socket.emit('join-support-room', student._id); // Join their specific private room
+  };
+
+  // 🌟 NEW: Admin sends a private reply
+  const handleAdminSend = (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !socket || !activeChatUser) return;
+
+    const messageData = {
+      roomId: activeChatUser._id, // Send to this specific student's room
+      text: chatInput,
+      senderId: user._id, // Admin's ID
+      senderName: "PrepMate Admin",
+      isAdmin: true
+    };
+
+    socket.emit('send-support-message', messageData);
+    setChatInput('');
+  };
+
+  // 🌟 NEW: Admin fires a Global Broadcast
+  const handleBroadcast = (e) => {
+    e.preventDefault();
+    if (!broadcastInput.trim() || !socket) return;
+    
+    if(!window.confirm("WARNING: This will instantly send a push notification message to EVERY active user on the platform. Proceed?")) return;
+
+    socket.emit('admin-broadcast', {
+      text: broadcastInput,
+      senderName: "System Broadcast",
+      isAdmin: true,
+      timestamp: new Date().toISOString()
+    });
+
+    setBroadcastInput('');
+    alert("Broadcast sent successfully!");
+  };
+
   const proSubscribers = usersList.filter(u => u.plan === 'Pro' || u.plan === 'Elite').length;
   const featuredCount = reviewsList.filter(r => r.isFeatured).length;
-
-  const ADMIN_STATS = [
-    { label:'Total Users',     value: loadingUsers ? '-' : usersList.length.toString(), change:'Live', pos:true,  icon: <Users className="w-5 h-5 text-blue-500" /> },
-    { label:'Pro Subscribers', value: loadingUsers ? '-' : proSubscribers.toString(),   change:'Live', pos:true,  icon: <CreditCard className="w-5 h-5 text-purple-500" /> },
-    { label:'MRR',             value:'$0.00', change:'0%', pos:true,  icon: <DollarSign className="w-5 h-5 text-green-500" /> },
-    { label:'Churn Rate',      value:'0%',    change:'0%', pos:false, icon: <TrendingDown className="w-5 h-5 text-red-500" /> },
-  ];
 
   return (
     <div className="p-5 md:p-8 animate-fade-up">
@@ -135,15 +201,16 @@ const AdminPage = ({ onNav }) => {
         <Badge color="purple">Super Admin</Badge>
       </div>
 
-      <div className="flex gap-1 bg-card2 border border-bdr2 rounded-xl p-1 w-fit mb-8">
+      <div className="flex gap-1 bg-card2 border border-bdr2 rounded-xl p-1 w-fit mb-8 overflow-x-auto">
         {SECTIONS.map(s => (
           <button key={s} onClick={() => setSection(s)}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold font-sora capitalize border-0 transition-all ${section===s ? 'bg-brand text-white' : 'bg-transparent text-muted hover:text-txt'}`}>
+            className={`px-4 py-2 rounded-lg text-xs font-semibold font-sora capitalize border-0 transition-all whitespace-nowrap ${section===s ? 'bg-brand text-white' : 'bg-transparent text-muted hover:text-txt'}`}>
             {s}
           </button>
         ))}
       </div>
 
+      {/* OVERVIEW SECTION */}
       {section === 'overview' && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -223,7 +290,7 @@ const AdminPage = ({ onNav }) => {
         </>
       )}
 
-      {/* 🌟 NEW REVIEWS SECTION */}
+      {/* REVIEWS SECTION */}
       {section === 'reviews' && (
         <div className="animate-fade-in-up">
           <div className="flex justify-between items-center mb-6">
@@ -298,6 +365,138 @@ const AdminPage = ({ onNav }) => {
         </div>
       )}
 
+      {/* 🌟 NEW: LIVE SUPPORT / CHAT COMMAND CENTER */}
+      {section === 'support' && (
+        <div className="animate-fade-in-up h-[700px] flex flex-col gap-4">
+          
+          {/* Global Broadcast Bar */}
+          <Card className="p-4 flex gap-4 items-center bg-red-500/5 border-red-500/20 shrink-0">
+            <Radio className="w-6 h-6 text-red-500" />
+            <form onSubmit={handleBroadcast} className="flex-1 flex gap-2">
+              <input 
+                type="text" 
+                placeholder="Global Broadcast: Send an alert to all active users..."
+                value={broadcastInput}
+                onChange={(e) => setBroadcastInput(e.target.value)}
+                className="flex-1 bg-card border border-bdr rounded-lg px-4 py-2 text-sm focus:border-red-500 outline-none"
+              />
+              <button 
+                type="submit" 
+                disabled={!broadcastInput.trim()}
+                className="px-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg text-sm transition-colors disabled:opacity-50"
+              >
+                Broadcast
+              </button>
+            </form>
+          </Card>
+
+          {/* Two-Pane Chat Interface */}
+          <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
+            
+            {/* Left Pane: User List */}
+            <div className="w-full md:w-1/3 bg-card border border-bdr rounded-xl overflow-hidden flex flex-col">
+              <div className="p-4 border-b border-bdr bg-card2 shrink-0">
+                <h3 className="font-bold text-sm">Inbox (Select User)</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {usersList.filter(u => u._id !== user._id).map(student => (
+                  <button
+                    key={student._id}
+                    onClick={() => handleSelectChatUser(student)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors border ${
+                      activeChatUser?._id === student._id 
+                        ? 'bg-brand/10 border-brand/30' 
+                        : 'bg-transparent border-transparent hover:bg-card2 hover:border-bdr2'
+                    }`}
+                  >
+                    {student.avatarUrl ? (
+                      <img src={student.avatarUrl} alt="User" className="w-10 h-10 rounded-full object-cover border border-bdr shrink-0" />
+                    ) : (
+                      <Avatar name={student.name} size={40} />
+                    )}
+                    <div className="overflow-hidden">
+                      <p className={`font-semibold text-sm truncate ${activeChatUser?._id === student._id ? 'text-brand-lt' : 'text-txt'}`}>
+                        {student.name}
+                      </p>
+                      <p className="text-xs text-muted truncate">{student.email}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right Pane: Active Chat Window */}
+            <div className="w-full md:w-2/3 bg-card2 border border-bdr rounded-xl flex flex-col overflow-hidden">
+              {activeChatUser ? (
+                <>
+                  <div className="bg-card border-b border-bdr p-4 flex items-center gap-3 shrink-0">
+                    <Avatar name={activeChatUser.name} size={32} />
+                    <div>
+                      <h3 className="font-bold text-txt text-sm">Chatting with {activeChatUser.name}</h3>
+                      <p className="text-xs text-muted">ID: {activeChatUser._id}</p>
+                    </div>
+                  </div>
+
+                  {/* Chat Messages */}
+                  <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                    {chatMessages.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-muted">
+                        <MessageSquare className="w-10 h-10 mb-2 opacity-20" />
+                        <p className="text-sm">No message history yet.</p>
+                      </div>
+                    ) : (
+                      chatMessages.map((msg, idx) => (
+                        <div key={msg._id || idx} className={`flex flex-col ${msg.isAdmin ? 'items-end' : 'items-start'}`}>
+                          <div 
+                            className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm ${
+                              msg.isAdmin 
+                                ? 'bg-brand text-white rounded-tr-sm' // Admin replies look like 'my' messages here
+                                : 'bg-card border border-bdr text-txt rounded-tl-sm' // Student messages look incoming
+                            }`}
+                          >
+                            {msg.text}
+                          </div>
+                          {msg.createdAt && (
+                            <span className="text-[9px] text-muted mt-1 px-1">
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                      ))
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  {/* Chat Input */}
+                  <form onSubmit={handleAdminSend} className="p-3 bg-card border-t border-bdr flex gap-2 shrink-0">
+                    <input 
+                      type="text"
+                      placeholder={`Reply to ${activeChatUser.name}...`}
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      className="flex-1 bg-card2 border border-bdr2 rounded-lg px-4 py-2.5 text-txt text-sm focus:outline-none focus:border-brand"
+                    />
+                    <button 
+                      type="submit"
+                      disabled={!chatInput.trim()}
+                      className="px-4 bg-brand hover:bg-brand-lt text-white rounded-lg flex items-center justify-center disabled:opacity-50"
+                    >
+                      <Send size={18} />
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-muted">
+                  <MessageSquare className="w-16 h-16 mb-4 opacity-10" />
+                  <p>Select a user from the inbox to view chat history and reply.</p>
+                </div>
+              )}
+            </div>
+            
+          </div>
+        </div>
+      )}
+
       {/* Fallback for other unfinished sections */}
       {(section === 'users' || section === 'settings') && (
         <Card className="py-20 text-center animate-fade-in-up">
@@ -309,5 +508,13 @@ const AdminPage = ({ onNav }) => {
     </div>
   );
 };
+
+// Extracted STATS out to prevent reference errors from earlier code omission
+const ADMIN_STATS = [
+  { label:'Total Users',     value: '-', change:'Live', pos:true,  icon: <Users className="w-5 h-5 text-blue-500" /> },
+  { label:'Pro Subscribers', value: '-', change:'Live', pos:true,  icon: <CreditCard className="w-5 h-5 text-purple-500" /> },
+  { label:'MRR',             value:'$0.00', change:'0%', pos:true,  icon: <DollarSign className="w-5 h-5 text-green-500" /> },
+  { label:'Churn Rate',      value:'0%',    change:'0%', pos:false, icon: <TrendingDown className="w-5 h-5 text-red-500" /> },
+];
 
 export default AdminPage;
