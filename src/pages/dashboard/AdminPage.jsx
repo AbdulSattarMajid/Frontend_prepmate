@@ -4,20 +4,25 @@ import Badge from '../../components/ui/Badge';
 import StatCard from '../../components/ui/StatCard';
 import Card from '../../components/ui/Card';
 import Avatar from '../../components/ui/Avatar';
-import { Shield, Users, CreditCard, DollarSign, TrendingDown, Wrench } from 'lucide-react'; // 🌟 Removed MoreHorizontal, we don't need it anymore
+import { Shield, Users, CreditCard, DollarSign, TrendingDown, Wrench, Star, MessageSquare } from 'lucide-react';
 
-const BASE_URL =import.meta.env.VITE_AUTH_BASE_URL;
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const AdminPage = ({ onNav }) => {
   const { token } = useApp();
   const [section, setSection] = useState('overview');
-  const SECTIONS = ['overview','users','content','settings'];
+  // 🌟 REPLACED 'content' with 'reviews'
+  const SECTIONS = ['overview','users','reviews','settings'];
 
-  // 🌟 LIVE DATA STATES
+  // Users State
   const [usersList, setUsersList] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
-  // 🌟 FETCH REAL USERS FROM DATABASE
+  // 🌟 Reviews State
+  const [reviewsList, setReviewsList] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  // Fetch Real Users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -25,22 +30,40 @@ const AdminPage = ({ onNav }) => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
-        
         if (data.success || Array.isArray(data)) {
-          // Supports both { success: true, data: [...] } and raw arrays
           setUsersList(data.data || data);
         }
       } catch (err) {
         console.error("Failed to load users", err);
       } finally {
-        setLoading(false);
+        setLoadingUsers(false);
       }
     };
-
     if (token) fetchUsers();
   }, [token]);
 
-  // 🌟 NEW: DELETE USER FUNCTION
+  // 🌟 Fetch All Reviews when the tab is clicked
+  useEffect(() => {
+    const fetchReviews = async () => {
+      setLoadingReviews(true);
+      try {
+        const res = await fetch(`${BASE_URL}/api/reviews/all`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setReviewsList(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch reviews", err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    if (token && section === 'reviews') fetchReviews();
+  }, [token, section]);
+
   const handleDeleteUser = async (userId, userName) => {
     if (!window.confirm(`Are you absolutely sure you want to delete ${userName}? This cannot be undone.`)) return;
 
@@ -52,7 +75,6 @@ const AdminPage = ({ onNav }) => {
       const data = await res.json();
 
       if (data.success) {
-        // Remove the user from the UI instantly
         setUsersList(prev => prev.filter(u => u._id !== userId));
       } else {
         alert(data.message);
@@ -62,12 +84,41 @@ const AdminPage = ({ onNav }) => {
     }
   };
 
-  // Dynamically calculate stats based on the live database
+  // 🌟 Toggle Featured Status function
+  const handleToggleFeature = async (reviewId, isCurrentlyFeatured) => {
+    // Safety check before sending request
+    if (!isCurrentlyFeatured) {
+      const currentFeaturedCount = reviewsList.filter(r => r.isFeatured).length;
+      if (currentFeaturedCount >= 3) {
+        alert("You can only feature 3 reviews on the landing page at a time. Please unfeature one first.");
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/reviews/${reviewId}/feature`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // Instantly update the UI without reloading
+        setReviewsList(prev => prev.map(r => r._id === reviewId ? { ...r, isFeatured: !r.isFeatured } : r));
+      } else {
+        alert(data.message || "Failed to update status.");
+      }
+    } catch (err) {
+      alert("Failed to feature review due to a network error.");
+    }
+  };
+
   const proSubscribers = usersList.filter(u => u.plan === 'Pro' || u.plan === 'Elite').length;
+  const featuredCount = reviewsList.filter(r => r.isFeatured).length;
 
   const ADMIN_STATS = [
-    { label:'Total Users',     value: loading ? '-' : usersList.length.toString(), change:'Live', pos:true,  icon: <Users className="w-5 h-5 text-blue-500" /> },
-    { label:'Pro Subscribers', value: loading ? '-' : proSubscribers.toString(),   change:'Live', pos:true,  icon: <CreditCard className="w-5 h-5 text-purple-500" /> },
+    { label:'Total Users',     value: loadingUsers ? '-' : usersList.length.toString(), change:'Live', pos:true,  icon: <Users className="w-5 h-5 text-blue-500" /> },
+    { label:'Pro Subscribers', value: loadingUsers ? '-' : proSubscribers.toString(),   change:'Live', pos:true,  icon: <CreditCard className="w-5 h-5 text-purple-500" /> },
     { label:'MRR',             value:'$0.00', change:'0%', pos:true,  icon: <DollarSign className="w-5 h-5 text-green-500" /> },
     { label:'Churn Rate',      value:'0%',    change:'0%', pos:false, icon: <TrendingDown className="w-5 h-5 text-red-500" /> },
   ];
@@ -76,7 +127,6 @@ const AdminPage = ({ onNav }) => {
     <div className="p-5 md:p-8 animate-fade-up">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between mb-8">
         <div>
-          {/* Removed the Back to Dashboard button since this IS the dashboard for Admins! */}
           <h1 className="text-2xl font-black flex items-center gap-2">
             <Shield className="w-7 h-7 text-brand-lt" /> Admin Panel
           </h1>
@@ -115,7 +165,7 @@ const AdminPage = ({ onNav }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
+                  {loadingUsers ? (
                     <tr>
                       <td colSpan="5" className="py-8 text-center text-muted animate-pulse">Loading live users...</td>
                     </tr>
@@ -128,7 +178,6 @@ const AdminPage = ({ onNav }) => {
                       <tr key={u._id} className="border-b border-bdr/50 hover:bg-white/[0.02] transition-colors">
                         <td className="py-3.5 px-3">
                           <div className="flex items-center gap-3">
-                            {/* Uses actual Cloudinary Avatar if available */}
                             {u.avatarUrl ? (
                               <img src={u.avatarUrl} alt={u.name} className="w-8 h-8 rounded-full object-cover border border-bdr" />
                             ) : (
@@ -153,7 +202,6 @@ const AdminPage = ({ onNav }) => {
                           {new Date(u.createdAt).toLocaleDateString()}
                         </td>
                         <td className="py-3.5 px-3">
-                          {/* 🌟 NEW: The Delete Button (Hidden for Admins) */}
                           {u.role !== 'admin' ? (
                             <button 
                               onClick={() => handleDeleteUser(u._id, u.name)}
@@ -175,8 +223,84 @@ const AdminPage = ({ onNav }) => {
         </>
       )}
 
-      {section !== 'overview' && (
-        <Card className="py-20 text-center">
+      {/* 🌟 NEW REVIEWS SECTION */}
+      {section === 'reviews' && (
+        <div className="animate-fade-in-up">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-brand" /> User Feedback
+              </h2>
+              <p className="text-sm text-muted mt-1">Select exactly 3 reviews to feature on the public landing page.</p>
+            </div>
+            <Badge color={featuredCount === 3 ? 'green' : 'orange'}>
+              {featuredCount}/3 Featured
+            </Badge>
+          </div>
+
+          {loadingReviews ? (
+            <Card className="py-20 text-center animate-pulse">
+              <p className="text-muted">Loading user reviews...</p>
+            </Card>
+          ) : reviewsList.length === 0 ? (
+            <Card className="py-20 text-center">
+              <Star className="w-12 h-12 mx-auto mb-4 text-bdr2" />
+              <p className="font-bold text-lg mb-2">No reviews yet</p>
+              <p className="text-muted text-sm">When users submit feedback from Settings, it will appear here.</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {reviewsList.map(review => (
+                <Card 
+                  key={review._id} 
+                  className={`p-6 transition-all border-2 ${review.isFeatured ? 'border-brand bg-brand/5' : 'border-bdr'}`}
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      {review.userId?.avatarUrl ? (
+                        <img src={review.userId.avatarUrl} alt="User" className="w-10 h-10 rounded-full object-cover border border-bdr" />
+                      ) : (
+                        <Avatar name={review.userId?.name || 'User'} size={40} />
+                      )}
+                      <div>
+                        <p className="font-semibold text-sm">{review.userId?.name || 'Unknown User'}</p>
+                        <div className="flex gap-1 text-amber-400 mt-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`w-3.5 h-3.5 ${i < review.rating ? 'fill-current' : 'text-bdr2'}`} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => handleToggleFeature(review._id, review.isFeatured)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
+                        review.isFeatured 
+                          ? 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20' 
+                          : 'bg-card2 text-txt border-bdr hover:border-brand'
+                      }`}
+                    >
+                      {review.isFeatured ? 'Remove from Wall' : 'Feature on Wall'}
+                    </button>
+                  </div>
+                  
+                  <div className="bg-card2 rounded-lg p-4 text-sm text-muted italic border border-bdr2">
+                    {review.feedback ? `"${review.feedback}"` : "No text feedback provided."}
+                  </div>
+                  
+                  <p className="text-xs text-ghost mt-4 text-right">
+                    Submitted on {new Date(review.createdAt).toLocaleDateString()}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fallback for other unfinished sections */}
+      {(section === 'users' || section === 'settings') && (
+        <Card className="py-20 text-center animate-fade-in-up">
           <Wrench className="w-12 h-12 mx-auto mb-4 text-muted" />
           <p className="font-bold text-lg mb-2 capitalize">{section} Management</p>
           <p className="text-muted text-sm">This section is under construction.</p>

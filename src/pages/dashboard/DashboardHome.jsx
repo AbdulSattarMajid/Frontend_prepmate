@@ -123,7 +123,8 @@ const DashboardHome = ({ onNav }) => {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-2xl md:text-3xl font-black flex items-center gap-2">
-              Welcome back, {user?.name?.split(' ')[0] || 'Candidate'} 
+              {/* 🌟 THE FIX: Now shows the full name instead of just the first word */}
+              Welcome back, {user?.name || 'Candidate'} 
               <Hand className="w-6 h-6 text-yellow-500" />
             </h1>
             {renderRoleBadge()}

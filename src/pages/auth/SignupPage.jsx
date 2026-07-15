@@ -64,7 +64,8 @@ const SignupPage = () => {
       const data = await res.json();
 
       if (data.success) {
-        navigate('/login'); 
+        // 🌟 THE FIX: We mimic the Google OAuth redirect so your AppContext catches the token instantly!
+        window.location.href = `/dashboard?token=${data.token}`;
       } else {
         setError(data.message || 'Invalid or expired verification code.');
       }
@@ -74,7 +75,6 @@ const SignupPage = () => {
     setLoading(false);
   };
 
-  // 🌟 ADDED GOOGLE LOGIN ROUTING 
   const handleGoogleLogin = () => {
     window.location.href = `${BASE_URL}/api/auth/google`;
   };
@@ -82,15 +82,13 @@ const SignupPage = () => {
   return (
     <div className="min-h-screen bg-[#0B0E14] text-white flex font-sans">
       
-      {/* 🌟 LEFT PANE - Fixed Spacing & Colors */}
+      {/* LEFT PANE - Fixed Spacing & Colors */}
       <div className="hidden lg:flex w-[45%] flex-col p-12 relative overflow-hidden bg-[#0B0E14] border-r border-gray-800">
         
-        {/* Logo anchored to the top */}
         <div className="mb-auto z-20">
           <Logo onClick={() => navigate('/')} className="cursor-pointer" />
         </div>
         
-        {/* Content anchored to the middle */}
         <div className="z-10 mb-auto mt-12">
           <h1 className="text-5xl font-extrabold leading-tight tracking-tight mb-12">
             Master your next<br/>interview with <span className="text-blue-500">AI.</span>
@@ -129,11 +127,10 @@ const SignupPage = () => {
           </div>
         </div>
         
-        {/* Decorative Background Element */}
         <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
       </div>
 
-      {/* 🌟 RIGHT PANE - Fixed Vertical Centering */}
+      {/* RIGHT PANE - Fixed Vertical Centering */}
       <div className="flex-1 flex flex-col relative overflow-y-auto bg-[#0B0E14]">
         
         <div className="lg:hidden p-6 flex justify-between items-center border-b border-gray-800 shrink-0">
@@ -141,7 +138,6 @@ const SignupPage = () => {
           <button onClick={() => navigate('/login')} className="text-sm font-semibold text-blue-400">Log in</button>
         </div>
 
-        {/* This wrapper forces perfect vertical centering */}
         <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 min-h-screen lg:min-h-0">
           <div className="w-full max-w-[400px] animate-fade-up">
             
@@ -156,7 +152,6 @@ const SignupPage = () => {
                 <h2 className="text-3xl font-bold text-gray-100 mb-2">Create your account</h2>
                 <p className="text-sm text-gray-400 mb-8">Join thousands of candidates landing their dream jobs.</p>
 
-                {/* 🌟 WIRED UP GOOGLE BUTTON */}
                 <button 
                   type="button"
                   onClick={handleGoogleLogin}

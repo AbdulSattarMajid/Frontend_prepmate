@@ -9,7 +9,7 @@ import { Briefcase } from 'lucide-react';
 import DashboardHome from './DashboardHome';
 import InterviewPage from './InterviewPage';
 import ResumePage from './ResumePage';
-import SettingsPage from './SettingsPage';
+import SettingsPage from './Settings/SettingsPage';
 import AdminPage from './AdminPage';
 import LearningModule from './LearningModule'; 
 

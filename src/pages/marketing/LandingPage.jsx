@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -16,11 +16,12 @@ import {
   Star, 
   Play, 
   User,
-  X // <-- Added X icon for the close button
+  X 
 } from 'lucide-react';
 
-// 👇 Replace 'demo.mp4' with your actual video filename in the folder
 import demoVideo from './FYP_Reel.mp4'; 
+
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const FEATURES = [
   { icon: <BarChart className="w-8 h-8 text-brand-lt" />, title: 'Real-time Feedback',  desc: 'Get instant scoring on tone, pace, and keywords during practice. Our AI detects filler words and suggests improvements on the fly.' },
@@ -41,7 +42,8 @@ const STEPS = [
   { n: 3, icon: <TrendingUp className="w-6 h-6 text-white" />, title: 'Get Actionable Feedback', desc: 'Receive detailed analytics on your performance and a personalised improvement plan.' },
 ];
 
-const TESTIMONIALS = [
+// Fallback testimonials if the database is empty
+const DEFAULT_TESTIMONIALS = [
   { 
     name: 'Sufyan Tipu', 
     role: 'PM at Spotify', 
@@ -59,13 +61,40 @@ const TESTIMONIALS = [
     role: 'UX Designer at Airbnb', 
     text: 'I struggled with behavioural questions. The STAR coaching built into PrepMate made my answers dramatically more structured.', 
     stars: 5 
-  },
+  }
 ];
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  // 👇 Added state to control video modal visibility
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [testimonials, setTestimonials] = useState(DEFAULT_TESTIMONIALS);
+
+  // 🌟 NEW: Fetch the 3 featured reviews from the backend
+  useEffect(() => {
+    const fetchFeaturedReviews = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/reviews/featured`);
+        const result = await res.json();
+        
+        if (result.success && result.data.length > 0) {
+          // Map the database structure to match our UI component
+          const formattedReviews = result.data.map(review => ({
+            id: review._id,
+            name: review.userId.name,
+            role: 'PrepMate Student', // Default role since we don't store job titles yet
+            text: review.feedback || "This platform completely changed how I prepare for interviews. Highly recommended!",
+            stars: review.rating,
+            avatarUrl: review.userId.avatarUrl
+          }));
+          setTestimonials(formattedReviews);
+        }
+      } catch (error) {
+        console.error("Failed to fetch live testimonials, using fallbacks.", error);
+      }
+    };
+
+    fetchFeaturedReviews();
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -81,7 +110,6 @@ const LandingPage = () => {
           </p>
           <div className="flex flex-wrap gap-3 mb-8">
             <Button size="lg" onClick={() => navigate('/signup')}>Get Started Free</Button>
-            {/* 👇 Added onClick to trigger the video modal */}
             <Button 
               variant="ghost" 
               size="lg" 
@@ -110,23 +138,19 @@ const LandingPage = () => {
         {/* Hero card with Background Image */}
         <div className="relative animate-fade-up" style={{ animationDelay: '0.15s' }}>
           <div className="relative bg-card rounded-2xl border border-bdr overflow-hidden aspect-[4/3] flex items-center justify-center shadow-2xl">
-            {/* Background Image */}
             <img 
               src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=800&q=80" 
               alt="Professional Interview Environment" 
               className="absolute inset-0 w-full h-full object-cover"
             />
-            {/* Gradient Overlay for Readability */}
             <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-brand/40" />
             
-            {/* Foreground Content */}
             <div className="text-center px-10 relative z-10">
               <Target className="w-16 h-16 mx-auto mb-4 text-brand-lt" />
               <p className="font-sora text-xl font-bold mb-2 text-white">AI Interview Session</p>
               <p className="text-gray-300 text-sm">Live feedback in real-time</p>
             </div>
 
-            {/* Floating Live Analysis Badge */}
             <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2.5 z-10 shadow-lg">
               <p className="text-[11px] text-gray-400 mb-0.5 uppercase tracking-wide">Live Analysis</p>
               <p className="text-sm font-bold text-white">
@@ -198,8 +222,8 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-black text-center mb-14">What Our Users Say</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {TESTIMONIALS.map(t => (
-              <Card key={t.name} className="p-7 flex flex-col gap-5 text-center items-center">
+            {testimonials.map((t, idx) => (
+              <Card key={t.id || idx} className="p-7 flex flex-col gap-5 text-center items-center">
                 <div className="flex gap-1 text-amber-400 justify-center">
                   {[...Array(t.stars)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-current" />
@@ -209,9 +233,13 @@ const LandingPage = () => {
                 <p className="text-muted text-sm leading-relaxed flex-1">"{t.text}"</p>
                 
                 <div className="pt-2 border-t border-bdr2/50 mt-auto flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-card2 border border-bdr flex items-center justify-center text-ghost">
-                    <User className="w-5 h-5" />
-                  </div>
+                  {t.avatarUrl ? (
+                    <img src={t.avatarUrl} alt={t.name} className="w-12 h-12 rounded-full object-cover border border-bdr" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-card2 border border-bdr flex items-center justify-center text-ghost">
+                      <User className="w-5 h-5" />
+                    </div>
+                  )}
                   <div>
                     <p className="font-semibold text-sm text-txt">{t.name}</p>
                     <p className="text-xs text-ghost">{t.role}</p>
@@ -249,18 +277,15 @@ const LandingPage = () => {
         </div>
       </footer>
 
-      {/* 👇 VIDEO MODAL COMPONENT */}
+      {/* VIDEO MODAL COMPONENT */}
       {showVideoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-          {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
             onClick={() => setShowVideoModal(false)}
           />
           
-          {/* Modal Content */}
           <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl border border-bdr z-10 animate-fade-up">
-            {/* Close Button */}
             <button 
               onClick={() => setShowVideoModal(false)}
               className="absolute top-4 right-4 z-20 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full transition-colors backdrop-blur-md"
@@ -268,7 +293,6 @@ const LandingPage = () => {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Video Player */}
             <video 
               src={demoVideo} 
               controls 
