@@ -8,7 +8,10 @@ import Navbar from './components/layout/Navbar';
 import LandingPage from './pages/marketing/LandingPage';
 import PremiumPage from './pages/marketing/PremiumPage';
 import FAQPage from './pages/FAQPage'; // 🌟 ADDED FAQ IMPORT
-
+// Legal Pages
+import PrivacyPolicy from './pages/info/Privacy';
+import TermsOfService from './pages/info/TermsOfService';
+import ContactPage from './pages/info/ContactPage';
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
@@ -32,6 +35,10 @@ const App = () => {
         <Route path="/premium" element={<><Navbar /><PremiumPage /></>} />
         
         <Route path="/success" element={<PaymentSuccessPage />} />
+        {/* Legal & Contact Routes */}
+        <Route path="/privacy" element={<><Navbar /><PrivacyPolicy /></>} />
+        <Route path="/terms" element={<><Navbar /><TermsOfService /></>} />
+        <Route path="/contact" element={<><Navbar /><ContactPage /></>} />
         {/* 🌟 ADDED FAQ ROUTE */}
         <Route path="/faq" element={<><Navbar /><FAQPage /></>} />
 

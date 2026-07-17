@@ -45,13 +45,13 @@ const STEPS = [
 // Fallback testimonials if the database is empty
 const DEFAULT_TESTIMONIALS = [
   { 
-    name: 'Sufyan Tipu', 
+    name: 'Sarah Jenkins', 
     role: 'PM at Spotify', 
     text: 'PrepMate caught that I was speaking too fast when nervous. Real-time feedback was a game changer for my final rounds.', 
     stars: 5 
   },
   { 
-    name: 'Muhammad Uzair', 
+    name: 'David Chen', 
     role: 'SWE at Google', 
     text: 'The technical question bank is scary accurate. I was asked three questions from my PrepMate sessions in the actual interview!', 
     stars: 5 
@@ -69,7 +69,7 @@ const LandingPage = () => {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [testimonials, setTestimonials] = useState(DEFAULT_TESTIMONIALS);
 
-  // 🌟 NEW: Fetch the 3 featured reviews from the backend
+  // Fetch the 3 featured reviews from the backend
   useEffect(() => {
     const fetchFeaturedReviews = async () => {
       try {
@@ -80,11 +80,11 @@ const LandingPage = () => {
           // Map the database structure to match our UI component
           const formattedReviews = result.data.map(review => ({
             id: review._id,
-            name: review.userId.name,
+            name: review.user?.name || 'Anonymous User', // Added optional chaining to prevent crashes
             role: 'PrepMate Student', // Default role since we don't store job titles yet
             text: review.feedback || "This platform completely changed how I prepare for interviews. Highly recommended!",
             stars: review.rating,
-            avatarUrl: review.userId.avatarUrl
+            avatarUrl: review.user?.avatarUrl
           }));
           setTestimonials(formattedReviews);
         }
@@ -267,13 +267,15 @@ const LandingPage = () => {
       {/* Footer */}
       <footer className="border-t border-bdr bg-card py-10 px-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Logo onClick={() => {}} />
-          <div className="flex flex-wrap gap-6 text-xs text-ghost">
-            {['About', 'Features', 'Community', 'Privacy Policy', 'Terms of Service', 'Contact'].map(l => (
-              <button key={l} className="bg-transparent border-0 text-ghost hover:text-muted transition-colors duration-150">{l}</button>
-            ))}
+          <Logo onClick={() => navigate('/')} />
+          <div className="flex flex-wrap justify-center gap-6 text-xs text-ghost">
+            <button onClick={() => navigate('/faq')} className="bg-transparent border-0 text-ghost hover:text-muted transition-colors duration-150 cursor-pointer font-sans">FAQ</button>
+            <button onClick={() => navigate('/community')} className="bg-transparent border-0 text-ghost hover:text-muted transition-colors duration-150 cursor-pointer font-sans">Community</button>
+            <button onClick={() => navigate('/privacy')} className="bg-transparent border-0 text-ghost hover:text-muted transition-colors duration-150 cursor-pointer font-sans">Privacy Policy</button>
+            <button onClick={() => navigate('/terms')} className="bg-transparent border-0 text-ghost hover:text-muted transition-colors duration-150 cursor-pointer font-sans">Terms of Service</button>
+            <button onClick={() => navigate('/contact')} className="bg-transparent border-0 text-ghost hover:text-muted transition-colors duration-150 cursor-pointer font-sans">Contact</button>
           </div>
-          <p className="text-xs text-ghost">© 2026 PrepMate, Inc.</p>
+          <p className="text-xs text-ghost">© {new Date().getFullYear()} PrepMate, Inc.</p>
         </div>
       </footer>
 

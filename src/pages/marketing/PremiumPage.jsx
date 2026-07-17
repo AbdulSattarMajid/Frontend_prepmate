@@ -177,7 +177,7 @@ const PremiumPage = () => {
         })}
       </div>
 
-      {/* FOOTER */}
+    {/* FOOTER */}
       <footer className="mt-auto pt-8 border-t border-bdr2 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted max-w-6xl mx-auto w-full">
         <div className="flex items-center gap-2">
           <span className="font-black text-txt tracking-tight">PrepMate</span>
@@ -185,9 +185,9 @@ const PremiumPage = () => {
         </div>
         
         <div className="flex items-center gap-6">
-          <button onClick={() => navigate('/')} className="bg-transparent border-0 hover:text-brand-lt transition-colors cursor-pointer">Privacy Policy</button>
-          <button onClick={() => navigate('/')} className="bg-transparent border-0 hover:text-brand-lt transition-colors cursor-pointer">Terms of Service</button>
-          <button onClick={() => navigate('/')} className="bg-transparent border-0 hover:text-brand-lt transition-colors cursor-pointer">Contact Support</button>
+          <button onClick={() => navigate('/privacy')} className="bg-transparent border-0 hover:text-brand-lt transition-colors cursor-pointer">Privacy Policy</button>
+          <button onClick={() => navigate('/terms')} className="bg-transparent border-0 hover:text-brand-lt transition-colors cursor-pointer">Terms of Service</button>
+          <button onClick={() => navigate('/contact')} className="bg-transparent border-0 hover:text-brand-lt transition-colors cursor-pointer">Contact Support</button>
         </div>
       </footer>
     </div>

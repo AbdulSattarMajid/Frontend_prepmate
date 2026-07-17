@@ -21,7 +21,7 @@ const DASH_PAGE_TITLES = {
 
 const DashboardShell = () => {
   const navigate = useNavigate();
-  const { user } = useApp(); // 🌟 Pulled user context to check for admin role
+  const { user } = useApp(); 
   const [active, setActive]     = useState('dashboard');
   const [sideOpen, setSideOpen] = useState(false);
 
@@ -59,7 +59,6 @@ const DashboardShell = () => {
           {active === 'jobs' && (
             <div className="flex items-center justify-center h-64 text-center px-4">
               <div>
-                {/* 🌟 Replaced emoji with Lucide icon */}
                 <Briefcase className="w-12 h-12 mx-auto mb-4 text-muted" />
                 <p className="font-bold text-xl mb-2">Job Board</p>
                 <p className="text-muted text-sm">Curated jobs matched to your resume — coming soon.</p>

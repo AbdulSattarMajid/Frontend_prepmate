@@ -197,12 +197,18 @@ const FAQPage = () => {
               <p className="text-muted mb-8 max-w-md mx-auto text-lg">
                 Can't find the answer you're looking for? Chat with our friendly team. We're here to help you succeed.
               </p>
-              <button className="px-8 py-4 border-0 cursor-pointer bg-txt text-deep font-bold rounded-xl transition-all duration-300 shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_25px_-5px_rgba(255,255,255,0.6)] hover:-translate-y-1 hover:opacity-90">
+              
+              {/* 🌟 ADDED THE ONCLICK NAVIGATE HERE */}
+              <button 
+                onClick={() => navigate('/contact')}
+                className="px-8 py-4 border-0 cursor-pointer bg-txt text-deep font-bold rounded-xl transition-all duration-300 shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_25px_-5px_rgba(255,255,255,0.6)] hover:-translate-y-1 hover:opacity-90"
+              >
                 Contact Support
               </button>
+              
             </div>
           </div>
-        </div>
+        </div>  
 
       </main>
     </div>
