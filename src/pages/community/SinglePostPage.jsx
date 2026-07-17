@@ -28,11 +28,14 @@ const SinglePostPage = () => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   
-  // 🌟 NEW: State to hold the stats for the Widgets
+  // 🌟 State to hold the stats for the Widgets
   const [totalPostCount, setTotalPostCount] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // 🌟 NEW: State for the sleek copy-link tooltip
+  const [copied, setCopied] = useState(false);
 
   // --- 1. FETCH LIVE POST, COMMENTS, AND STATS ---
   useEffect(() => {
@@ -42,7 +45,7 @@ const SinglePostPage = () => {
         const [postRes, commentsRes, statsRes] = await Promise.all([
           fetch(`${BASE_URL}/api/forum/posts/${id}`),
           fetch(`${BASE_URL}/api/forum/posts/${id}/comments`),
-          fetch(`${BASE_URL}/api/forum/posts?limit=1`) // Fetching just 1 post to get the "total" count fast
+          fetch(`${BASE_URL}/api/forum/posts?limit=1`) 
         ]);
 
         const postData = await postRes.json();
@@ -59,12 +62,12 @@ const SinglePostPage = () => {
           setComments(commentsData.data);
         }
         
-        // 🌟 Ensure the widget gets the live total count
         if (statsData.success) {
           setTotalPostCount(statsData.total);
         }
         
       } catch (err) {
+        console.log(err)
         setError('Server error while fetching discussion.');
       } finally {
         setLoading(false);
@@ -96,6 +99,7 @@ const SinglePostPage = () => {
         setPost(prev => ({ ...prev, commentCount: prev.commentCount + 1 }));
       }
     } catch (err) {
+      console.log(err)
       alert("Failed to post comment. Please try again.");
     }
   };
@@ -116,8 +120,18 @@ const SinglePostPage = () => {
         setPost(prev => ({ ...prev, commentCount: Math.max(0, prev.commentCount - 1) }));
       }
     } catch (err) {
+      console.log(err)
       alert("Failed to delete comment.");
     }
+  };
+
+  // 🌟 NEW: Inline Copy Link Handler
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   };
 
   if (loading) return <div className="min-h-screen bg-deep flex items-center justify-center text-muted animate-pulse">Loading discussion...</div>;
@@ -125,6 +139,9 @@ const SinglePostPage = () => {
 
   const authorName = post.author?.name || 'Anonymous';
   const postDate = new Date(post.createdAt).toLocaleDateString();
+  
+  // 🌟 NEW: Extract the post author's plan for badges
+  const authorPlan = post.author?.plan || post.author?.role || 'basic';
 
   return (
     <div className="min-h-screen bg-deep">
@@ -143,7 +160,24 @@ const SinglePostPage = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-xs text-ghost">
                 <Avatar name={authorName} size={28} />
-                <span className="font-bold text-muted text-sm">{authorName}</span>
+                
+                {/* 🌟 UPDATED: Render author name with optional Elite styling */}
+                <span className={`font-bold text-sm ${authorPlan === 'elite' ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500' : 'text-muted'}`}>
+                  {authorName}
+                </span>
+
+                {/* 🌟 NEW: Post Author Badges */}
+                {authorPlan === 'pro' && (
+                  <span className="px-1.5 py-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded text-[9px] font-black tracking-widest shadow-sm">
+                    PRO
+                  </span>
+                )}
+                {authorPlan === 'elite' && (
+                  <span className="px-1.5 py-0.5 bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600 text-black rounded text-[9px] font-black tracking-widest shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                    ELITE
+                  </span>
+                )}
+
                 <span>• {postDate}</span>
               </div>
               {post.category && (
@@ -165,9 +199,20 @@ const SinglePostPage = () => {
 
             <p className="text-muted text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
             
+            {/* 🌟 UPDATED: Added the Share button with inline "Copied!" feedback */}
             <div className="flex items-center gap-5 mt-6 pt-4 border-t border-bdr text-xs font-semibold text-ghost">
               <span className="flex items-center gap-1.5"><span className="text-base">↑</span> {post.upvotes?.length || 0} Upvotes</span>
               <span className="flex items-center gap-1.5"><span className="text-sm">👁</span> {post.views || 0} Views</span>
+              
+              <div className="ml-auto relative">
+                <button 
+                  onClick={handleCopyLink}
+                  className={`flex items-center gap-1.5 bg-transparent border-0 transition-colors ${copied ? 'text-green-500' : 'hover:text-txt'}`}
+                >
+                  <span className="text-lg">{copied ? '✅' : '🔗'}</span> 
+                  {copied ? 'Copied!' : 'Share'}
+                </button>
+              </div>
             </div>
           </Card>
 
@@ -200,13 +245,33 @@ const SinglePostPage = () => {
                   const commentAuthor = c.author?.name || 'Anonymous';
                   const commentDate = new Date(c.createdAt).toLocaleDateString();
                   const isCommentOwner = user && c.author?._id === user._id;
+                  
+                  // 🌟 NEW: Extract commenter plan for badges
+                  const commentPlan = c.author?.plan || c.author?.role || 'basic';
 
                   return (
                     <Card key={c._id} className="p-5 bg-card/40 relative group">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 text-xs text-ghost">
                           <Avatar name={commentAuthor} size={20} />
-                          <span className="font-bold text-muted">{commentAuthor}</span>
+                          
+                          {/* 🌟 UPDATED: Commenter Elite styling */}
+                          <span className={`font-bold ${commentPlan === 'elite' ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500' : 'text-muted'}`}>
+                            {commentAuthor}
+                          </span>
+
+                          {/* 🌟 NEW: Commenter Badges */}
+                          {commentPlan === 'pro' && (
+                            <span className="px-1.5 py-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded text-[8px] font-black tracking-widest shadow-sm">
+                              PRO
+                            </span>
+                          )}
+                          {commentPlan === 'elite' && (
+                            <span className="px-1.5 py-0.5 bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600 text-black rounded text-[8px] font-black tracking-widest shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                              ELITE
+                            </span>
+                          )}
+
                           <span>• {commentDate}</span>
                           {c.author?.role === 'admin' && <Badge color="purple" size="sm">ADMIN</Badge>}
                         </div>
@@ -229,7 +294,6 @@ const SinglePostPage = () => {
           </div>
         </div>
 
-        {/* 🌟 UPDATED: Pass the totalPostCount down to the widget */}
         <CommunityWidgets totalPosts={totalPostCount} />
       </div>
     </div>

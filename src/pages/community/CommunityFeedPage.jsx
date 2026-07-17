@@ -15,7 +15,6 @@ const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const CommunityFeedPage = () => {
   const navigate = useNavigate();
-  // 🌟 Make sure setUser is pulled so we can update the global savedPosts state instantly
   const { user, token, setUser } = useApp(); 
   
   const [posts, setPosts]         = useState([]);
@@ -69,6 +68,7 @@ const CommunityFeedPage = () => {
         }
       } catch (err) {
         setError('Server error connecting to the forum.');
+        console.log(err)
       } finally {
         setLoading(false);
       }
@@ -118,7 +118,7 @@ const CommunityFeedPage = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
     } catch (err) {
-      console.error("Failed to sync upvote");
+      console.error("Failed to sync upvote"+err);
     }
   };
 
@@ -212,6 +212,7 @@ const CommunityFeedPage = () => {
       }
     } catch (err) {
       alert("Failed to delete post. Please try again.");
+      console.log(err)
     }
   };
 
@@ -265,18 +266,22 @@ const CommunityFeedPage = () => {
       </div>
 
       {/* MAIN LAYOUT */}
-      <div className="max-w-[1300px] mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
+      {/* 🌟 Added items-start here so sticky positioning works! */}
+      <div className="max-w-[1300px] mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8 items-start">
         
         {/* --- CONNECTED LEFT SIDEBAR --- */}
-        <CommunitySidebar 
-          navigate={navigate} 
-          user={user} 
-          onStartDiscussion={() => { user ? setShowModal(true) : navigate('/login'); }} 
-          activeMenu={activeMenu}
-          setActiveMenu={setActiveMenu}
-          activeTopic={activeTopic}
-          setActiveTopic={setActiveTopic}
-        />
+        {/* 🌟 Wrapped in a sticky div */}
+        <div className="sticky top-24 h-fit z-10 hidden lg:block w-64 flex-shrink-0">
+          <CommunitySidebar 
+            navigate={navigate} 
+            user={user} 
+            onStartDiscussion={() => { user ? setShowModal(true) : navigate('/login'); }} 
+            activeMenu={activeMenu}
+            setActiveMenu={setActiveMenu}
+            activeTopic={activeTopic}
+            setActiveTopic={setActiveTopic}
+          />
+        </div>
 
         {/* FEED */}
         <div className="flex-1 min-w-0">
@@ -301,6 +306,8 @@ const CommunityFeedPage = () => {
               <div className="text-center py-10 text-muted">No discussions found. Be the first to post!</div>
             ) : (
               filtered.map(post => {
+                
+                {/* 🌟 Passing the User Plan/Role down to the PostCard! */}
                 const postForCard = {
                   id: post._id,
                   authorId: post.author?._id,
@@ -308,6 +315,7 @@ const CommunityFeedPage = () => {
                   body: post.content,
                   imageUrl: post.imageUrl,
                   author: post.author?.name || 'Anonymous',
+                  plan: post.author?.plan || post.author?.role || 'basic', // <-- Added this!
                   tag: post.category,
                   upvotes: post.upvotes?.length || 0,
                   comments: post.commentCount || 0,
@@ -341,7 +349,11 @@ const CommunityFeedPage = () => {
         </div>
 
         {/* --- CONNECTED RIGHT SIDEBAR --- */}
-        <CommunityWidgets totalPosts={totalPostCount} trendingTags={trendingTags} />
+        {/* 🌟 Wrapped in a sticky div */}
+        <div className="sticky top-24 h-fit z-10 hidden xl:block w-72 flex-shrink-0">
+          <CommunityWidgets totalPosts={totalPostCount} trendingTags={trendingTags} />
+        </div>
+
       </div>
 
       {/* DISCUSSION MODAL */}
@@ -377,7 +389,6 @@ const CommunityFeedPage = () => {
           </div>
 
           <div className="flex gap-3 justify-end pt-2">
-            {/* 🌟 Buttons dynamically disable while submitting */}
             <Button variant="ghost" onClick={closeModal} disabled={isSubmitting}>Cancel</Button>
             <Button 
               onClick={handlePost} 

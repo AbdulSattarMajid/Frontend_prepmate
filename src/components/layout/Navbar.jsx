@@ -6,6 +6,7 @@ import { useApp } from '../../context/AppContext';
 import { Trophy, Sun, Moon, Menu, X, Star, Crown } from 'lucide-react';
 
 const NAV_LINKS = [
+  { label: 'Home',      page: '/' }, 
   { label: 'Practice',  page: '/dashboard' }, 
   { label: 'FAQ' ,      page: '/faq' },   
   { label: 'Community', page: '/community' },
