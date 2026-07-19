@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useApp } from '../../context/AppContext';
 import { resumeApi } from '../../services/resumeApi';
 
 const JOB_ROLES = [
@@ -15,6 +16,17 @@ const JOB_ROLES = [
 ];
 
 const ResumeAnalyzer = () => {
+  // 🌟 Bring in the Token System
+  const { user, deductTokens } = useApp();
+  const ANALYSIS_COST = 10;
+  
+  // 🌟 Check for free daily reward
+  const lastClaim = new Date(user?.lastDailyRewardDate || 0);
+  const today = new Date();
+  const isNewDay = lastClaim.getDate() !== today.getDate() || 
+                   lastClaim.getMonth() !== today.getMonth() || 
+                   lastClaim.getFullYear() !== today.getFullYear();
+
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState(''); 
   const [role, setRole] = useState(JOB_ROLES[0].id);
@@ -30,6 +42,7 @@ const ResumeAnalyzer = () => {
       if (parsed.jdText) setJdText(parsed.jdText);
       if (parsed.role) setRole(parsed.role);
       if (parsed.fileName) setFileName(parsed.fileName);
+      // Note: We cannot restore the actual 'file' object from localStorage
     }
   }, []);
 
@@ -41,25 +54,40 @@ const ResumeAnalyzer = () => {
   };
 
   const handleAnalyze = async () => {
-    if (!file && !results) {
-      alert("Please upload a resume and paste a Job Description.");
+    // 🌟 STRICT CHECK: Prevent 422 Errors by ensuring the physical file object exists
+    if (!file || !role || !jdText) {
+      alert("Please upload a resume file, select a role, and paste a Job Description before analyzing.");
+      return;
+    }
+
+    if (user.tokens < ANALYSIS_COST) {
+      alert(`You need ${ANALYSIS_COST} tokens to analyze a resume. You currently have ${user.tokens}.`);
       return;
     }
 
     setLoading(true);
+
     try {
       const data = await resumeApi.analyze(file, role, jdText);
+
+      const deductResult = await deductTokens(ANALYSIS_COST);
+      if (!deductResult.success) {
+        alert(deductResult.message || "Analysis succeeded, but failed to sync token balance.");
+      }
+
+      // 🌟 4. Show results
       setResults(data.results);
       
       localStorage.setItem('prepmate_resume_session', JSON.stringify({
         results: data.results,
         jdText: jdText,
         role: role,
-        fileName: file ? file.name : fileName
+        fileName: file.name
       }));
 
     } catch (error) {
-      alert("Analysis failed. Please check your connection and try again.");
+      console.error("422 Details:", error.response?.data || error.message);
+      alert("Analysis failed. Your tokens were NOT deducted. Check the console for details.");
     } finally {
       setLoading(false);
     }
@@ -92,23 +120,32 @@ const ResumeAnalyzer = () => {
           <h1 className="text-3xl font-bold text-txt transition-colors duration-300">Resume Analyzer</h1>
           <p className="text-muted mt-2 text-sm transition-colors duration-300">Optimize your CV for Applicant Tracking Systems (ATS) and get feedback.</p>
         </div>
-        {results && (
-          <div className="flex gap-3">
-            <button 
-              onClick={handleClear}
-              className="px-4 py-2.5 bg-bdr transition-colors duration-150 text-txt hover:bg-bdr2 text-sm font-bold rounded-lg border border-bdr2"
-            >
-              Start Fresh
-            </button>
-            <button 
-              onClick={handleDownloadPDF}
-              className="flex items-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand-lt text-white text-sm font-bold rounded-lg transition-colors shadow-lg"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download Report
-            </button>
-          </div>
-        )}
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {/* 🌟 Token Balance Badge */}
+          <span className="flex items-center gap-1.5 text-sm font-bold bg-card border border-brand/30 px-3 py-1.5 rounded-full text-brand-lt shadow-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+            {user?.tokens || 0} Tokens
+          </span>
+
+          {results && (
+            <div className="flex gap-3">
+              <button 
+                onClick={handleClear}
+                className="px-4 py-2.5 bg-bdr transition-colors duration-150 text-txt hover:bg-bdr2 text-sm font-bold rounded-lg border border-bdr2"
+              >
+                Start Fresh
+              </button>
+              <button 
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand-lt text-white text-sm font-bold rounded-lg transition-colors shadow-lg"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Report
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Split Layout */}
@@ -158,7 +195,14 @@ const ResumeAnalyzer = () => {
           </div>
 
           {/* Target Job Description Card */}
-          <div className="bg-card rounded-2xl border border-bdr p-5 transition-colors duration-300">
+          <div className="bg-card rounded-2xl border border-bdr p-5 relative overflow-hidden transition-colors duration-300">
+            {/* 🌟 The Free Badge */}
+            {isNewDay && (
+              <div className="absolute top-0 right-0 bg-brand text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg shadow-sm">
+                First one today is FREE!
+              </div>
+            )}
+
             <div className="flex items-center gap-2 mb-4">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-brand" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
               <h3 className="font-bold text-txt text-sm transition-colors duration-300">Target Job Description</h3>
@@ -185,15 +229,29 @@ const ResumeAnalyzer = () => {
                 className="w-full bg-card2 border border-bdr2 rounded-lg px-4 py-3 text-sm text-txt focus:outline-none focus:border-brand resize-none placeholder:text-ghost transition-colors duration-300"
               />
 
-              <button 
-                onClick={handleAnalyze}
-                disabled={loading || (!file && !results)}
-                className={`w-full py-3 rounded-lg font-bold text-sm transition-all flex justify-center items-center gap-2 ${
-                  loading || (!file && !results) ? "bg-bdr text-muted cursor-not-allowed" : "bg-brand hover:bg-brand-lt text-white"
-                }`}
-              >
-                {loading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Analyzing...</> : "Compare Resume"}
-              </button>
+              <div>
+                <button 
+                  onClick={handleAnalyze}
+                  // 🌟 STRICT CHECK: Button is disabled if there's no file or jd text
+                  disabled={loading || !file || !jdText}
+                  className={`w-full py-3 rounded-lg font-bold text-sm transition-all flex justify-center items-center gap-2 ${
+                    loading || !file || !jdText ? "bg-bdr text-muted cursor-not-allowed" : "bg-brand hover:bg-brand-lt text-white"
+                  }`}
+                >
+                  {loading ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Analyzing...</>
+                  ) : (
+                    `Compare Resume (${ANALYSIS_COST} Tokens)`
+                  )}
+                </button>
+
+                {/* 🌟 Safety Warning text */}
+                {user?.tokens < ANALYSIS_COST && !isNewDay && (
+                  <p className="text-center text-[11px] text-red-400 font-semibold mt-2">
+                    Not enough tokens to analyze.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 

@@ -11,7 +11,8 @@ import Button from '../../components/ui/Button';
 const LLM_ROLES = ["MERN Stack", "Frontend (React)", "Python Backend", "MySQL / Databases"];
 
 const InterviewPage = ({ onNav }) => {
-  const { user } = useApp();
+  // 🌟 PULL IN deductTokens FROM CONTEXT
+  const { user, deductTokens } = useApp();
   
   // --- CORE STATE ---
   const [phase, setPhase] = useState('setup');
@@ -54,33 +55,22 @@ const InterviewPage = ({ onNav }) => {
 
   const [reportData, setReportData] = useState(null);
 
-  // 🌟 THE BULLETPROOF MEMORY BRIDGE
   useEffect(() => {
     let mounted = true;
 
     const checkExistingSession = async () => {
-      // Did we leave a flag here earlier?
       if (localStorage.getItem('prepmate_evaluating') === 'true') {
-        
-        // Immediately show the loading screen so they don't see the setup form
         setPhase('finalizing'); 
-        
         try {
           const data = await interviewApi.getReport();
-          
           if (mounted) {
-            // 🌟 If the report actually has an overall score, it's done!
             if (data && data.summary && data.summary.overall_score !== undefined) {
               localStorage.removeItem('prepmate_evaluating');
               setReportData(data);
               setPhase('report');
-            } 
-            // 🌟 If it's still officially processing, jump back into the loop
-            else if (data?.summary?.evaluation_status === 'processing') {
+            } else if (data?.summary?.evaluation_status === 'processing') {
               loadReport();
-            } 
-            // 🌟 Failsafe: drop back to setup
-            else {
+            } else {
               localStorage.removeItem('prepmate_evaluating');
               setPhase('setup');
             }
@@ -95,7 +85,6 @@ const InterviewPage = ({ onNav }) => {
     };
 
     checkExistingSession();
-
     return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -146,33 +135,28 @@ const InterviewPage = ({ onNav }) => {
   };
 
   // --- API HANDLERS ---
-  
   const loadReport = async () => {
     setLoading(true);
     window.speechSynthesis.cancel();
     stopCamera();
     
-    // Set the safety flag so they can leave the page
     localStorage.setItem('prepmate_evaluating', 'true');
     setPhase('finalizing'); 
     
     try {
       let data = await interviewApi.getReport();
-
-      // The Polling Loop
       while (data?.summary?.evaluation_status === 'processing') {
         await new Promise(resolve => setTimeout(resolve, 3000)); 
         data = await interviewApi.getReport(); 
       }
 
-      // Analysis complete! Remove the flag.
       localStorage.removeItem('prepmate_evaluating');
       setReportData(data);
       setPhase('report');
     } catch (err) {
       localStorage.removeItem('prepmate_evaluating');
       alert("Failed to fetch report data. Please check your dashboard later.");
-      setPhase('setup'); // Kick back to setup if server crashes
+      setPhase('setup'); 
     } finally {
       setLoading(false);
     }
@@ -232,8 +216,26 @@ const InterviewPage = ({ onNav }) => {
   };
 
   const startSession = async () => {
+    // 1. Determine cost based on mode
+    const tokenCost = mode === "Coding Challenge Only" ? 10 : 20;
+
+    // 2. Front-end guard
+    if (user.tokens < tokenCost) {
+      alert(`You need ${tokenCost} tokens to start a ${mode}. You currently have ${user.tokens}.`);
+      return;
+    }
+
     setLoading(true);
-    // Safety clear in case a previous session bugged out
+
+    // 3. Process Payment
+    const deductResult = await deductTokens(tokenCost);
+    if (!deductResult.success) {
+      alert(deductResult.message || "Failed to process tokens. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    // 4. Payment successful! Start the interview.
     localStorage.removeItem('prepmate_evaluating');
     
     try {
@@ -244,6 +246,7 @@ const InterviewPage = ({ onNav }) => {
       setLoading(false);
       return; 
     }
+    
     if (interviewApi.wakeUpAI) interviewApi.wakeUpAI();
     await interviewApi.resetSession();
     setQuestionsCompleted(0);
@@ -313,29 +316,21 @@ const InterviewPage = ({ onNav }) => {
     }
   };
 
-const handleCodeSubmit = async () => {
+  const handleCodeSubmit = async () => {
     if (!codeAnswer.trim()) return;
     setLoading(true);
     try {
       const langKey = selectedLanguage === "javascript" ? "JavaScript" : "Python";
       let functionName = entryPoints[langKey] || "solution";
 
-      // 🌟 THE FIX: SMART FUNCTION NAME EXTRACTION
-      // We read the user's actual code to see what they named their function!
       if (selectedLanguage === "python") {
-        // Looks for "def my_func"
         const pyMatch = codeAnswer.match(/def\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
         if (pyMatch) functionName = pyMatch[1];
       } else {
-        // Looks for "function myFunc" or "const myFunc ="
         const jsMatch = codeAnswer.match(/function\s+([a-zA-Z_][a-zA-Z0-9_]*)/) || 
                         codeAnswer.match(/(?:const|let|var)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(?:function|\()/);
         if (jsMatch) functionName = jsMatch[1];
       }
-
-      console.log("--- SMART SANDBOX SUBMISSION ---");
-      console.log("Extracted Function Name:", functionName);
-      console.log("Tests Array:", codingTests);
 
       if (qType === "theoretical_code" || !codingTests || codingTests.length === 0) {
         await interviewApi.processTextAnswer({
@@ -351,7 +346,7 @@ const handleCodeSubmit = async () => {
         await interviewApi.evaluateCode({
           code: codeAnswer, 
           tests: codingTests, 
-          function_name: functionName, // Now perfectly matches the user's code!
+          function_name: functionName, 
           language: selectedLanguage,
           question_index: questionsCompleted 
         });
@@ -365,6 +360,7 @@ const handleCodeSubmit = async () => {
       setLoading(false);
     }
   };
+
   // --- RENDER ROUTER ---
   switch (phase) {
     case 'setup':

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import DashSidebar from '../../components/layout/DashSidebar';
 import DashTopbar from '../../components/layout/DashTopbar';
-import { Briefcase } from 'lucide-react'; 
 
 // Dashboard Sub-pages
 import DashboardHome from './DashboardHome';
@@ -12,6 +11,7 @@ import ResumePage from './ResumePage';
 import SettingsPage from './Settings/SettingsPage';
 import AdminPage from './AdminPage';
 import LearningModule from './LearningModule'; 
+import JobBoard from './JobBoard'; // 🌟 Added JobBoard Import
 
 const DASH_PAGE_TITLES = {
   dashboard:'Dashboard', interview:'Practice Interview', resume:'Resume Analyser',
@@ -55,20 +55,7 @@ const DashboardShell = () => {
             {active === 'settings'   && <SettingsPage />}
             {active === 'learning'   && <LearningModule />}
             {active === 'admin'      && <AdminPage     onNav={onNav} />}
-
-            {active === 'jobs' && (
-              <div className="flex items-center justify-center h-[60vh] px-4 text-center">
-                <div className="max-w-sm rounded-2xl border border-white/10 bg-white/5 px-8 py-10 backdrop-blur-sm">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                    <Briefcase className="h-7 w-7 text-primary" />
-                  </div>
-                  <p className="mb-2 text-xl font-bold text-white">Job Board</p>
-                  <p className="text-sm leading-relaxed text-muted">
-                    Curated jobs matched to your resume — coming soon.
-                  </p>
-                </div>
-              </div>
-            )}
+            {active === 'jobs'       && <JobBoard />} 
           </div>
         </main>
       </div>

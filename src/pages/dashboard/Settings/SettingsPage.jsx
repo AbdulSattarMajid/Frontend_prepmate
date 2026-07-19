@@ -18,8 +18,18 @@ const TABS = [
 ];
 
 const SettingsPage = () => {
-  const { logout } = useApp();
+  // 🌟 Pulled 'user' from context so we can check their role
+  const { logout, user } = useApp();
   const [activeTab, setActiveTab] = useState('profile');
+
+  // 🌟 NEW: Filter out tabs that Admins shouldn't see
+  const visibleTabs = TABS.filter(tab => {
+    if (user?.role === 'admin') {
+      // Hide Billing, Security (delete account), and Support from Admin
+      return !['billing', 'security', 'support'].includes(tab.id);
+    }
+    return true; // Regular users see everything
+  });
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto w-full animate-fade-in-up transition-colors duration-300">
@@ -31,7 +41,8 @@ const SettingsPage = () => {
       <div className="flex flex-col md:flex-row gap-8">
         {/* Settings Sidebar */}
         <div className="w-full md:w-64 flex-shrink-0 space-y-1">
-          {TABS.map((tab) => {
+          {/* 🌟 Changed TABS.map to visibleTabs.map */}
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (

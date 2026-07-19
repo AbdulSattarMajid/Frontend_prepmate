@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 const AppContext = createContext(null);
 export const useApp = () => useContext(AppContext);
 
-const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL ;
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const snatchTokenFromUrl = () => {
   if (typeof window === 'undefined') return null;
@@ -24,12 +24,10 @@ export const AppProvider = ({ children }) => {
   const [token, setToken] = useState(snatchTokenFromUrl);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
-  // 🌟 NEW: Theme State
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('prepmate_theme') || 'dark';
   });
 
-  // 🌟 NEW: Apply theme to HTML tag
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
@@ -40,7 +38,6 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('prepmate_theme', theme);
   }, [theme]);
 
-  // 🌟 NEW: Toggle Function
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   }, []);
@@ -96,9 +93,68 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem('prepMateToken');
   }, [token]);
 
+  const claimDailyReward = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/claim-daily`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setUser(prev => ({
+          ...prev,
+          tokens: data.tokens,
+          maxTokens: data.maxTokens,
+          lastDailyRewardDate: data.lastDailyRewardDate
+        }));
+      }
+      return data;
+    } catch (error) {
+      console.error("Claim Token Error:", error);
+      return { success: false, message: "Network error trying to claim tokens." };
+    }
+  }, [token]);
+
+  // 🌟 New Token Deduction Function
+  const deductTokens = useCallback(async (amount) => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/deduct-tokens`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ amount })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        // Optimistically update the user state so the Navbar changes instantly!
+        setUser(prev => ({
+          ...prev,
+          tokens: data.tokens
+        }));
+      }
+      return data; 
+    } catch (error) {
+      console.error("Deduct Token Error:", error);
+      return { success: false, message: "Network error trying to deduct tokens." };
+    }
+  }, [token]);
+
   return (
-    // 🌟 Added theme and toggleTheme to the export
-    <AppContext.Provider value={{ user, token, login, logout, setUser, theme, toggleTheme }}>
+    <AppContext.Provider value={{ 
+      user, 
+      token, 
+      login, 
+      logout, 
+      setUser, 
+      theme, 
+      toggleTheme, 
+      claimDailyReward, 
+      deductTokens 
+    }}>
       {!loadingAuth ? children : (
         <div className="min-h-screen bg-deep flex items-center justify-center text-brand-lt font-sora font-bold text-xl animate-pulse transition-colors duration-300">
           Loading PrepMate...

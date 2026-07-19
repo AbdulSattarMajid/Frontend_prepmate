@@ -4,14 +4,14 @@ import { useApp } from '../../context/AppContext';
 import Button from '../../components/ui/Button';
 import { CheckCircle, Sparkles, ArrowRight, Loader } from 'lucide-react';
 
-const BASE_URL =import.meta.env.VITE_AUTH_BASE_URL;
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const PaymentSuccessPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { token, setUser } = useApp();
   
-  const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
+  const [status, setStatus] = useState('verifying'); 
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -23,8 +23,6 @@ const PaymentSuccessPage = () => {
       }
 
       try {
-        // Ping your backend to verify the Stripe session and update the DB
-        // NOTE: Adjust this endpoint to match your backend's verification route!
         const res = await fetch(`${BASE_URL}/api/payments/verify-session`, {
           method: 'POST',
           headers: {
@@ -37,11 +35,12 @@ const PaymentSuccessPage = () => {
         const data = await res.json();
 
         if (data.success) {
-          // 🌟 THE MAGIC: Instantly update the user's plan in global state!
-          // Assume the backend sends back the updated user object or plan name
+          // 🌟 THE MAGIC: Update plan AND token balances simultaneously!
           setUser(prev => ({ 
             ...prev, 
-            plan: data.plan || 'Pro' // Fallback to 'Pro' if backend doesn't send it
+            plan: data.plan || 'Pro',
+            tokens: data.tokens !== undefined ? data.tokens : prev.tokens,
+            maxTokens: data.maxTokens !== undefined ? data.maxTokens : prev.maxTokens
           }));
           setStatus('success');
         } else {

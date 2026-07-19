@@ -1,18 +1,42 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button'; // Adjust path if needed
-import { Mail, MessageSquare, ArrowLeft, Send } from 'lucide-react';
+import { Mail, MessageSquare, ArrowLeft, Send, AlertCircle } from 'lucide-react';
 
 const ContactPage = () => {
+  const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  
+  // 🌟 NEW: Added loading and error states
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // For now, just simulate a successful send.
-    // Later, you can wire this to an Express route like POST /api/support/contact
-    setSubmitted(true);
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send message.');
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,6 +87,15 @@ const ContactPage = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
+                
+                {/* 🌟 NEW: Error Message Display */}
+                {error && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-500 text-sm">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <p>{error}</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-muted">Your Name</label>
                   <input 
@@ -72,6 +105,7 @@ const ContactPage = () => {
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-card2 border border-bdr2 rounded-lg px-4 py-3 text-txt focus:outline-none focus:border-brand transition-colors"
                     placeholder="John Doe"
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -83,6 +117,7 @@ const ContactPage = () => {
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     className="w-full bg-card2 border border-bdr2 rounded-lg px-4 py-3 text-txt focus:outline-none focus:border-brand transition-colors"
                     placeholder="john@example.com"
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -94,10 +129,22 @@ const ContactPage = () => {
                     onChange={(e) => setFormData({...formData, message: e.target.value})}
                     className="w-full bg-card2 border border-bdr2 rounded-lg px-4 py-3 text-txt focus:outline-none focus:border-brand transition-colors resize-none"
                     placeholder="Tell us about your issue..."
+                    disabled={loading}
                   />
                 </div>
-                <Button type="submit" className="w-full py-3 mt-2 flex items-center justify-center gap-2">
-                  <Send className="w-4 h-4" /> Send Message
+                <Button 
+                  type="submit" 
+                  className="w-full py-3 mt-2 flex items-center justify-center gap-2"
+                  disabled={loading}
+                >
+                  {/* 🌟 NEW: Dynamic button text */}
+                  {loading ? (
+                    'Sending...'
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" /> Send Message
+                    </>
+                  )}
                 </Button>
               </form>
             )}

@@ -11,6 +11,19 @@ import CommunityWidgets from '../../components/community/CommunityWidgets';
 import PostCard from '../../components/community/PostCard';
 import { sanitiseInput } from '../../utils/helpers';
 
+// Added Lucide icons for the tabs and modal tags
+import { 
+  HelpCircle, 
+  Briefcase, 
+  Coins, 
+  Lightbulb, 
+  FileText,
+  Clock,
+  TrendingUp,
+  Award,
+  MessageSquareX 
+} from 'lucide-react';
+
 const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const CommunityFeedPage = () => {
@@ -37,7 +50,6 @@ const CommunityFeedPage = () => {
   const [postTag, setPostTag]     = useState('Question');
   const [postImage, setPostImage] = useState(null);
   
-  // 🌟 Anti-Spam Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --- DYNAMIC FETCH POSTS ---
@@ -147,10 +159,10 @@ const CommunityFeedPage = () => {
 
   // --- HANDLE CREATING OR EDITING A POST ---
   const handlePost = async () => {
-    // 🌟 Prevent running if already submitting
+
     if (!postTitle.trim() || !postBody.trim() || isSubmitting) return; 
     
-    setIsSubmitting(true); // Lock the button!
+    setIsSubmitting(true); 
     
     try {
       const url = editingPostId 
@@ -191,7 +203,6 @@ const CommunityFeedPage = () => {
       console.error("Failed to save post", err);
       alert("A network error occurred while uploading. Please check the console.");
     } finally {
-      // 🌟 Always unlock the button when done
       setIsSubmitting(false);
     }
   };
@@ -234,7 +245,7 @@ const CommunityFeedPage = () => {
     setPostBody('');
     setPostTag('Question');
     setPostImage(null); 
-    setIsSubmitting(false); // Failsafe unlock
+    setIsSubmitting(false); 
   };
 
   const filtered = posts.filter(p =>
@@ -242,6 +253,23 @@ const CommunityFeedPage = () => {
     p.title?.toLowerCase().includes(search.toLowerCase()) || 
     p.content?.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Configuration for feed tabs with icons
+  const feedTabs = [
+    { name: 'Latest', icon: <Clock className="w-4 h-4" /> },
+    { name: 'Top (Week)', icon: <TrendingUp className="w-4 h-4" /> },
+    { name: 'Top (Month)', icon: <Award className="w-4 h-4" /> },
+    { name: 'Unanswered', icon: <MessageSquareX className="w-4 h-4" /> }
+  ];
+
+  // Configuration for modal category tags with icons
+  const categoryTags = [
+    { name: 'Question', icon: <HelpCircle className="w-3.5 h-3.5" /> },
+    { name: 'Interview Experiences', icon: <Briefcase className="w-3.5 h-3.5" /> },
+    { name: 'Salary & Offer', icon: <Coins className="w-3.5 h-3.5" /> },
+    { name: 'General Advice', icon: <Lightbulb className="w-3.5 h-3.5" /> },
+    { name: 'Resume Review', icon: <FileText className="w-3.5 h-3.5" /> }
+  ];
 
   return (
     <div className="min-h-screen bg-deep pb-24">
@@ -266,11 +294,9 @@ const CommunityFeedPage = () => {
       </div>
 
       {/* MAIN LAYOUT */}
-      {/* 🌟 Added items-start here so sticky positioning works! */}
       <div className="max-w-[1300px] mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8 items-start">
         
         {/* --- CONNECTED LEFT SIDEBAR --- */}
-        {/* 🌟 Wrapped in a sticky div */}
         <div className="sticky top-24 h-fit z-10 hidden lg:block w-64 flex-shrink-0">
           <CommunitySidebar 
             navigate={navigate} 
@@ -285,14 +311,15 @@ const CommunityFeedPage = () => {
 
         {/* FEED */}
         <div className="flex-1 min-w-0">
-          <div className="flex gap-6 border-b border-bdr mb-6 px-2">
-            {['Latest', 'Top (Week)', 'Top (Month)', 'Unanswered'].map(tab => (
+          <div className="flex gap-6 border-b border-bdr mb-6 px-2 overflow-x-auto whitespace-nowrap hide-scrollbar">
+            {feedTabs.map(tab => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-sm font-semibold transition-all border-b-2 bg-transparent ${activeTab===tab ? 'border-brand-lt text-txt' : 'border-transparent text-muted hover:text-txt'}`}
+                key={tab.name}
+                onClick={() => setActiveTab(tab.name)}
+                className={`pb-3 flex items-center gap-2 text-sm font-semibold transition-all border-b-2 bg-transparent ${activeTab === tab.name ? 'border-brand-lt text-txt' : 'border-transparent text-muted hover:text-txt'}`}
               >
-                {tab}
+                {tab.icon}
+                {tab.name}
               </button>
             ))}
           </div>
@@ -307,7 +334,6 @@ const CommunityFeedPage = () => {
             ) : (
               filtered.map(post => {
                 
-                {/* 🌟 Passing the User Plan/Role down to the PostCard! */}
                 const postForCard = {
                   id: post._id,
                   authorId: post.author?._id,
@@ -315,7 +341,7 @@ const CommunityFeedPage = () => {
                   body: post.content,
                   imageUrl: post.imageUrl,
                   author: post.author?.name || 'Anonymous',
-                  plan: post.author?.plan || post.author?.role || 'basic', // <-- Added this!
+                  plan: post.author?.plan || post.author?.role || 'basic', // Role passed perfectly!
                   tag: post.category,
                   upvotes: post.upvotes?.length || 0,
                   comments: post.commentCount || 0,
@@ -349,7 +375,6 @@ const CommunityFeedPage = () => {
         </div>
 
         {/* --- CONNECTED RIGHT SIDEBAR --- */}
-        {/* 🌟 Wrapped in a sticky div */}
         <div className="sticky top-24 h-fit z-10 hidden xl:block w-72 flex-shrink-0">
           <CommunityWidgets totalPosts={totalPostCount} trendingTags={trendingTags} />
         </div>
@@ -362,13 +387,15 @@ const CommunityFeedPage = () => {
           <div>
             <p className="text-xs font-medium text-muted mb-2">Category</p>
             <div className="flex flex-wrap gap-2">
-              {['Question', 'Interview Experiences', 'Salary & Offer', 'General Advice', 'Resume Review'].map(tag => (
+              {/* Used our new categoryTags array with icons here */}
+              {categoryTags.map(cat => (
                 <button
-                  key={tag}
-                  onClick={() => setPostTag(tag)}
-                  className={`px-4 py-1.5 rounded-full border text-xs font-semibold font-sora transition-all ${postTag===tag ? 'border-brand-lt bg-brand/15 text-brand-lt' : 'border-bdr2 bg-transparent text-muted hover:text-txt'}`}
+                  key={cat.name}
+                  onClick={() => setPostTag(cat.name)}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full border text-xs font-semibold font-sora transition-all ${postTag === cat.name ? 'border-brand-lt bg-brand/15 text-brand-lt' : 'border-bdr2 bg-transparent text-muted hover:text-txt'}`}
                 >
-                  {tag}
+                  {cat.icon}
+                  {cat.name}
                 </button>
               ))}
             </div>

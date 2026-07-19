@@ -3,7 +3,8 @@ import Card from '../ui/Card';
 import Avatar from '../ui/Avatar';
 import Badge from '../ui/Badge';
 import { useApp } from '../../context/AppContext';
-import { Pin, ArrowUp, MessageSquare, Eye, Link, Bookmark } from 'lucide-react'; 
+// Added Briefcase to your lucide-react imports
+import { Pin, ArrowUp, MessageSquare, Eye, Link, Bookmark, Briefcase } from 'lucide-react'; 
 
 const TAG_COLORS = { 
   'Interview Experiences': 'blue', 
@@ -51,6 +52,14 @@ const PostCard = ({ post, isUpvoted, onUpvote, onClick, currentUserId, onEdit, o
           {userPlan === 'elite' && (
             <span className="px-1.5 py-0.5 bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600 text-black rounded text-[9px] font-black tracking-widest shadow-[0_0_10px_rgba(245,158,11,0.2)]">
               ELITE
+            </span>
+          )}
+          
+          {/* 🌟 NEW: Recruiter & HR Badge */}
+          {(userPlan === 'recruiter' || userPlan === 'hr') && (
+            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-brand/10 text-brand border border-brand/20 rounded text-[9px] font-black tracking-widest uppercase shadow-sm">
+              <Briefcase className="w-2.5 h-2.5" />
+              {userPlan === 'hr' ? 'HR' : 'RECRUITER'}
             </span>
           )}
 

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useApp } from '../../../context/AppContext';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import { interviewApi } from '../../../services/interviewApi';
-import { Code2, Server, Layout, Database, Braces, Boxes, ListChecks, Sparkles } from 'lucide-react';
+import { Code2, Server, Layout, Database, Braces, Boxes, ListChecks, Sparkles, Coins, Gift } from 'lucide-react';
 
 const ROLES = [
   { label: "Python", icon: Code2 },
@@ -25,25 +26,53 @@ const MODES = [
 ];
 
 const SetupPhase = ({ role, setRole, level, setLevel, mode, setMode, startSession, loading }) => {
+  const { user } = useApp(); // 🌟 Pull in user for token balance
   const [aiReady, setAiReady] = useState(false);
 
-  // Silently warms up Ollama while the user reads the screen.
   useEffect(() => {
     interviewApi.wakeUpAI().then(() => setAiReady(true)).catch(() => {});
   }, []);
 
+  // 🌟 Dynamic Cost Calculation
+  const tokenCost = mode === "Coding Challenge Only" ? 10 : 20;
+
+  // 🌟 Free Daily Badge Logic
+  const lastClaim = new Date(user?.lastDailyRewardDate || 0);
+  const today = new Date();
+  const isNewDay = lastClaim.getDate() !== today.getDate() || 
+                   lastClaim.getMonth() !== today.getMonth() || 
+                   lastClaim.getFullYear() !== today.getFullYear();
+
   return (
     <div className="p-5 md:p-8 animate-fade-up max-w-3xl mx-auto">
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <h1 className="text-2xl md:text-3xl font-black">Candidate Registration</h1>
-        <span className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full border border-bdr2 whitespace-nowrap ${aiReady ? 'text-brand' : 'text-muted'}`}>
-          <span className={`w-2 h-2 rounded-full ${aiReady ? 'bg-brand' : 'bg-muted animate-pulse'}`} />
-          {aiReady ? 'AI engine ready' : 'Warming up AI engine'}
-        </span>
-      </div>
-      <p className="text-muted mb-8">Customize your AI interview environment.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black">Candidate Registration</h1>
+          <p className="text-muted mt-1">Customize your AI interview environment.</p>
+        </div>
+        
+        {/* 🌟 Status & Token Badges */}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full border border-bdr2 whitespace-nowrap ${aiReady ? 'text-brand' : 'text-muted'}`}>
+            <span className={`w-2 h-2 rounded-full ${aiReady ? 'bg-brand' : 'bg-muted animate-pulse'}`} />
+            {aiReady ? 'AI engine ready' : 'Warming up AI'}
+          </span>
 
-      <Card className="p-6 space-y-6">
+          <span className="flex items-center gap-1.5 text-sm font-bold bg-deep px-3 py-1.5 rounded-full border border-brand/30 text-brand-lt shadow-sm">
+            <Coins size={16} className="text-brand" /> 
+            {user?.tokens || 0} Tokens
+          </span>
+        </div>
+      </div>
+
+      <Card className="p-6 space-y-6 relative overflow-hidden">
+        {/* 🌟 The Free Badge */}
+        {isNewDay && (
+          <div className="absolute top-0 right-0 bg-brand text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl shadow-lg flex items-center gap-1.5 animate-fade-up">
+            <Gift size={14} /> First one today is FREE!
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-bold mb-3">Target Role</label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -88,9 +117,28 @@ const SetupPhase = ({ role, setRole, level, setLevel, mode, setMode, startSessio
           </div>
         </div>
 
-        <Button onClick={startSession} disabled={loading} className="w-full mt-4" size="lg">
-          {loading ? <span className="flex items-center justify-center gap-2"><Sparkles size={16} className="animate-pulse" /> Configuring session...</span> : 'Start Interview'}
-        </Button>
+        {/* 🌟 Dynamic Button Text & Safety Messages */}
+        <div className="pt-2">
+          <Button onClick={startSession} disabled={loading} className="w-full" size="lg">
+            {loading ? (
+              <span className="flex items-center justify-center gap-2"><Sparkles size={16} className="animate-pulse" /> Configuring session...</span>
+            ) : (
+              `Start Interview (${tokenCost} Tokens)`
+            )}
+          </Button>
+
+          {user?.tokens < tokenCost && !isNewDay && (
+            <p className="text-center text-xs text-red-400 font-semibold mt-3 animate-fade-up">
+              Not enough tokens. Please claim your daily reward or upgrade your plan.
+            </p>
+          )}
+          
+          {user?.tokens < tokenCost && isNewDay && (
+            <p className="text-center text-xs text-brand font-semibold mt-3 animate-fade-up">
+              Make sure to claim your daily reward from the top navigation bar to get your free tokens!
+            </p>
+          )}
+        </div>
       </Card>
     </div>
   );

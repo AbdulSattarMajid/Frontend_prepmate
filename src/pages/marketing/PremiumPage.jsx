@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
-import { Check, Star, Zap, Shield, Sparkles } from 'lucide-react';
+import { Check, Star, Zap, Shield, Sparkles, Briefcase } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
@@ -19,7 +19,7 @@ const PremiumPage = () => {
       name: 'Basic',
       price: '$0',
       icon: <Shield className="w-6 h-6 text-gray-400" />,
-      features: ['Basic Mock Interviews', 'Community Forum Access', 'Standard Response Times'],
+      features: ['200 Token Cap', '20 Daily Tokens', 'Basic Mock Interviews', 'Community Forum Access'],
       color: 'gray',
       cta: 'Current Plan',
       popular: false
@@ -29,7 +29,7 @@ const PremiumPage = () => {
       name: 'Pro',
       price: '$19',
       icon: <Star className="w-6 h-6 text-brand-lt" />,
-      features: ['Unlimited AI Mock Interviews', 'Advanced Resume Feedback', 'Priority Community Support', 'No Ads'],
+      features: ['1,000 Token Cap', '30 Daily Tokens', '500 Monthly Token Grant', 'Unlimited AI Mock Interviews', 'Advanced Resume Feedback'],
       color: 'blue',
       cta: 'Upgrade to Pro',
       popular: true
@@ -39,21 +39,29 @@ const PremiumPage = () => {
       name: 'Elite',
       price: '$39',
       icon: <Zap className="w-6 h-6 text-purple-500" />,
-      features: ['Everything in Pro', '1-on-1 Mentor Matching', 'Custom Portfolio Reviews', 'Verified "Elite" Badge'],
+      features: ['3,000 Token Cap', '50 Daily Tokens', '1,200 Monthly Token Grant', '1-on-1 Mentor Matching', 'Custom Portfolio Reviews'],
       color: 'purple',
       cta: 'Upgrade to Elite',
+      popular: false
+    },
+    {
+      id: 'recruiter',
+      name: 'Recruiter',
+      price: '$49',
+      icon: <Briefcase className="w-6 h-6 text-orange-500" />,
+      features: ['10,000 Token Cap', '1,000 Monthly Token Grant', 'Unlock Candidate Profiles', 'Advanced Search Filters', 'Priority Support'],
+      color: 'orange',
+      cta: 'Get Recruiter Plan',
       popular: false
     }
   ];
 
-  // 🌟 THE PAYMENT BRIDGE (Stripe Checkout Redirect)
   const handleUpgradeClick = async (plan) => {
     if (!token) {
       alert("Please log in to upgrade.");
       return navigate('/login');
     }
 
-    // Don't allow purchasing the free plan
     if (plan.price === '$0') return;
 
     const rawPrice = parseInt(plan.price.slice(1));
@@ -77,7 +85,6 @@ const PremiumPage = () => {
       const data = await res.json();
 
       if (data.success && data.url) {
-        // 🚀 REDIRECT TO STRIPE HOSTED CHECKOUT
         window.location.href = data.url;
       } else {
         alert("Payment session failed: " + (data.message || "Unknown error"));
@@ -93,7 +100,6 @@ const PremiumPage = () => {
   return (
     <div className="min-h-screen bg-deep py-20 px-4 flex flex-col animate-fade-in">
       
-      {/* HEADER SECTION */}
       <div className="text-center max-w-3xl mx-auto mb-16">
         <Badge color="purple" className="mb-4">
           <Sparkles className="w-3 h-3 inline-block mr-1" /> Supercharge Your Career
@@ -105,7 +111,6 @@ const PremiumPage = () => {
           Join thousands of candidates landing their dream jobs faster with our premium AI interview tools.
         </p>
 
-        {/* BILLING TOGGLE */}
         <div className="mt-10 flex items-center justify-center gap-4">
           <span className={`text-sm font-bold ${billing === 'monthly' ? 'text-txt' : 'text-muted'}`}>Monthly</span>
           <button 
@@ -120,8 +125,7 @@ const PremiumPage = () => {
         </div>
       </div>
       
-      {/* PRICING CARDS */}
-      <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full mb-16">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[90rem] mx-auto w-full mb-16">
         {PLANS.map(plan => {
           const rawPrice = parseInt(plan.price.slice(1));
           const displayPrice = billing === 'annual' && rawPrice > 0 ? Math.round(rawPrice * 0.8) : rawPrice;
@@ -154,14 +158,14 @@ const PremiumPage = () => {
               <ul className="space-y-4 mb-8 flex-1">
                 {plan.features.map(f => (
                   <li key={f} className="flex items-start gap-3 text-sm text-txt font-medium">
-                    <Check className={`w-5 h-5 flex-shrink-0 ${plan.color === 'purple' ? 'text-purple-500' : plan.color === 'blue' ? 'text-brand-lt' : 'text-green-500'}`} /> 
+                    <Check className={`w-5 h-5 flex-shrink-0 ${plan.color === 'purple' ? 'text-purple-500' : plan.color === 'orange' ? 'text-orange-500' : plan.color === 'blue' ? 'text-brand-lt' : 'text-green-500'}`} /> 
                     {f}
                   </li>
                 ))}
               </ul>
 
               <Button
-                variant={plan.id === 'elite' ? 'purple' : plan.popular ? 'primary' : 'secondary'}
+                variant={plan.id === 'elite' ? 'purple' : plan.id === 'recruiter' ? 'secondary' : plan.popular ? 'primary' : 'secondary'}
                 className="w-full py-4 text-lg font-bold"
                 disabled={loadingPlan === plan.id || plan.id === 'free' || (user?.plan === plan.name)}
                 onClick={() => handleUpgradeClick(plan)}
@@ -177,8 +181,7 @@ const PremiumPage = () => {
         })}
       </div>
 
-    {/* FOOTER */}
-      <footer className="mt-auto pt-8 border-t border-bdr2 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted max-w-6xl mx-auto w-full">
+      <footer className="mt-auto pt-8 border-t border-bdr2 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted max-w-[90rem] mx-auto w-full">
         <div className="flex items-center gap-2">
           <span className="font-black text-txt tracking-tight">PrepMate</span>
           <span>© {new Date().getFullYear()} All rights reserved.</span>

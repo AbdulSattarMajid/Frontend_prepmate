@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useApp } from '../../context/AppContext';
 import {
   Layout, Server, Database, GitBranch, Box, Terminal, Network, ShieldCheck,
   Smartphone, Cpu, GraduationCap, ChevronLeft, ChevronRight, Check, X,
@@ -47,6 +48,9 @@ const Glow = () => (
 );
 
 const LearningModule = () => {
+  // 🌟 Token Context
+  const { user, deductTokens } = useApp();
+
   // --- STATE ---
   const [phase, setPhase] = useState('setup'); // 'setup', 'quiz', 'results'
   const [loading, setLoading] = useState(false);
@@ -67,10 +71,36 @@ const LearningModule = () => {
   const currentTopic = TOPICS.find((t) => t.id === selectedTopic) || TOPICS[0];
   const TopicIcon = currentTopic.icon;
 
+  // 🌟 Simplified Pricing Logic
+  const getQuizCost = (num) => {
+    if (num <= 20) return 0;   // Free
+    return 5;                  // 5 Tokens for 21-50
+  };
+
+  const tokenCost = getQuizCost(questionCount);
+
   // --- HANDLERS ---
   const startQuiz = async () => {
+    // 🌟 1. Front-end guard
+    if (user.tokens < tokenCost) {
+      setErrorMessage(`You need ${tokenCost} tokens for ${questionCount} questions. You currently have ${user.tokens}.`);
+      return;
+    }
+
     setLoading(true);
     setErrorMessage('');
+
+    // 🌟 2. Process Payment
+    if (tokenCost > 0) {
+      const deductResult = await deductTokens(tokenCost);
+      if (!deductResult.success) {
+        setErrorMessage(deductResult.message || "Failed to process tokens. Please try again.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // 🌟 3. Fetch Quiz
     try {
       const data = await learningApi.getQuiz(selectedTopic, questionCount);
       if (data.questions && data.questions.length > 0) {
@@ -145,6 +175,13 @@ const LearningModule = () => {
       <div className="min-h-screen p-4 md:p-8 qz-body flex items-center justify-center relative bg-deep transition-colors duration-300">
         <GlobalStyles />
         <Glow />
+
+        {/* 🌟 Floating Token Badge */}
+        <div className="absolute top-4 right-4 md:top-8 md:right-8 flex items-center gap-1.5 text-sm font-bold bg-card border border-brand/30 px-4 py-2 rounded-full text-brand-lt shadow-lg z-20 transition-colors duration-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+          {user?.tokens || 0} Tokens
+        </div>
+
         <div className="max-w-2xl w-full rounded-3xl border border-bdr shadow-2xl space-y-8 p-8 relative z-10 bg-card transition-colors duration-300">
           <div className="text-center">
             <div className="w-14 h-14 bg-brand/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-brand/20">
@@ -194,6 +231,7 @@ const LearningModule = () => {
                   <span className="qz-mono text-lg font-semibold text-txt w-8 text-center transition-colors duration-300">{questionCount}</span>
                   <button
                     type="button"
+                    /* 🌟 Max cap back to 50 */
                     onClick={() => setQuestionCount((q) => Math.min(50, Number(q) + 1))}
                     className="w-8 h-8 flex items-center justify-center rounded-lg border border-bdr2 text-muted hover:border-brand-lt hover:text-brand-lt transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                   >
@@ -204,11 +242,17 @@ const LearningModule = () => {
               <input
                 type="range"
                 min="1"
-                max="50"
+                max="50" /* 🌟 Slider max back to 50 */
                 value={questionCount}
                 onChange={(e) => setQuestionCount(Number(e.target.value))}
                 className="w-full accent-brand-lt cursor-pointer"
               />
+              
+              {/* 🌟 Updated Tier Breakdown */}
+              <div className="flex justify-between text-[11px] sm:text-xs font-bold text-muted mt-3 px-1 transition-colors duration-300">
+                <span className={questionCount <= 20 ? "text-brand-lt" : ""}>1-20 (Free)</span>
+                <span className={questionCount > 20 ? "text-brand-lt" : ""}>21-50 (5 Tokens)</span>
+              </div>
             </div>
 
             {errorMessage && (
@@ -235,7 +279,8 @@ const LearningModule = () => {
                 </>
               ) : (
                 <>
-                  Start assessment
+                  {/* 🌟 Dynamic Button Text */}
+                  Start assessment ({tokenCost === 0 ? 'FREE' : `${tokenCost} Tokens`})
                   <ArrowRight size={20} />
                 </>
               )}
@@ -369,7 +414,6 @@ const LearningModule = () => {
 
           <div className="relative w-44 h-44 mx-auto">
             <svg width="176" height="176" viewBox="0 0 176 176" className="-rotate-90">
-              {/* Used var(--color-bdr) for the background ring color so it adapts to Light/Dark mode */}
               <circle cx="88" cy="88" r={RADIUS} fill="none" stroke="var(--color-bdr)" strokeWidth="12" className="transition-colors duration-300" />
               <circle
                 cx="88" cy="88" r={RADIUS} fill="none"

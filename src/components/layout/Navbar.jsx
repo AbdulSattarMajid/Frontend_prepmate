@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../ui/Logo';
 import Button from '../ui/Button';
 import { useApp } from '../../context/AppContext';
-import { Trophy, Sun, Moon, Menu, X, Star, Crown } from 'lucide-react';
+import { Trophy, Sun, Moon, Menu, X, Star, Crown, Coins } from 'lucide-react';
 
 const NAV_LINKS = [
   { label: 'Home',      page: '/' }, 
@@ -51,6 +51,21 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-4">
+              
+              {/* 🌟 NEW: THE WALLET UI */}
+              <div 
+                title={`Token Balance: ${user.tokens || 0} / ${user.maxTokens || 200}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-help transition-all ${
+                  (user.tokens || 0) < 10 
+                  ? 'bg-red-500/10 border-red-500/20 text-red-500' // Turns red if running low!
+                  : 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                }`}
+              >
+                <Coins className="w-3.5 h-3.5" />
+                <span>{user.tokens || 0} / {user.maxTokens || 200}</span>
+              </div>
+
+              {/* Community Points */}
               <div 
                 title="Community Points"
                 className="flex items-center gap-1.5 px-3 py-1 bg-brand/10 border border-brand/20 rounded-full text-brand-lt text-xs font-bold cursor-help"
@@ -59,13 +74,12 @@ export default function Navbar() {
                 <span>{user.points || 0}</span>
               </div>
 
-              {/* 🌟 PREMIUM PROFILE UI */}
+              {/* Premium Profile UI */}
               <button 
                 onClick={() => navigate('/dashboard/settings')} 
                 className="relative flex items-center justify-center focus:outline-none group"
                 title="Settings & Profile"
               >
-                {/* Gradient Border Container */}
                 <div className={`p-[3px] rounded-full transition-all duration-300 ${
                   user.plan === 'Elite' ? 'bg-gradient-to-tr from-amber-300 via-yellow-500 to-amber-600 shadow-[0_0_15px_rgba(245,158,11,0.3)]' :
                   user.plan === 'Pro' ? 'bg-gradient-to-tr from-blue-400 to-indigo-600 shadow-[0_0_15px_rgba(59,130,246,0.3)]' :
@@ -82,7 +96,6 @@ export default function Navbar() {
                   </div>
                 </div>
 
-                {/* Badge Icon */}
                 {user.plan && user.plan !== 'Basic' && (
                   <div className={`absolute -bottom-1 -right-1 z-10 w-5 h-5 rounded-full flex items-center justify-center border-2 border-deep text-white
                     ${user.plan === 'Elite' ? 'bg-amber-500' : 'bg-blue-600'}`}
@@ -130,9 +143,17 @@ export default function Navbar() {
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-txt">{user.name}</span>
-                <span className="text-xs text-brand-lt font-medium flex items-center gap-1 mt-0.5">
-                  <Trophy className="w-3 h-3" /> {user.points || 0} Points
-                </span>
+                <div className="flex items-center gap-3 mt-1">
+                  
+                  {/* 🌟 NEW: Mobile Wallet */}
+                  <span className="text-xs text-amber-500 font-bold flex items-center gap-1">
+                    <Coins className="w-3 h-3" /> {user.tokens || 0} / {user.maxTokens || 200}
+                  </span>
+
+                  <span className="text-xs text-brand-lt font-medium flex items-center gap-1">
+                    <Trophy className="w-3 h-3" /> {user.points || 0}
+                  </span>
+                </div>
               </div>
             </div>
           )}

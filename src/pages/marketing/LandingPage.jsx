@@ -16,7 +16,10 @@ import {
   Star, 
   Play, 
   User,
-  X 
+  X,
+  ArrowRight,
+  Quote,
+  CheckCircle2
 } from 'lucide-react';
 
 import demoVideo from './FYP_Reel.mp4'; 
@@ -24,9 +27,9 @@ import demoVideo from './FYP_Reel.mp4';
 const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
 const FEATURES = [
-  { icon: <BarChart className="w-8 h-8 text-brand-lt" />, title: 'Real-time Feedback',  desc: 'Get instant scoring on tone, pace, and keywords during practice. Our AI detects filler words and suggests improvements on the fly.' },
-  { icon: <FileText className="w-8 h-8 text-brand-lt" />, title: 'Resume Analysis',     desc: 'Ensure your CV passes ATS filters. We scan your resume against job descriptions to highlight key strengths and missing keywords.' },
-  { icon: <Database className="w-8 h-8 text-brand-lt" />, title: 'Massive Question Bank', desc: 'Practice with 500+ industry-specific questions tailored to your target role — from behavioral deep-dives to system design marathons.' },
+  { icon: <BarChart className="w-6 h-6 text-brand-lt" />, title: 'Real-time Feedback',  desc: 'Get instant scoring on tone, pace, and keywords during practice. Our AI detects filler words and suggests improvements on the fly.' },
+  { icon: <FileText className="w-6 h-6 text-brand-lt" />, title: 'Resume Analysis',     desc: 'Ensure your CV passes ATS filters. We scan your resume against job descriptions to highlight key strengths and missing keywords.' },
+  { icon: <Database className="w-6 h-6 text-brand-lt" />, title: 'Massive Question Bank', desc: 'Practice with 500+ industry-specific questions tailored to your target role — from behavioral deep-dives to system design marathons.' },
 ];
 
 const STATS = [
@@ -99,74 +102,95 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
-        <div className="animate-fade-up">
-          <Badge color="blue" className="mb-5">AI-Powered Career Coach</Badge>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight mb-6">
-            Ace Your Next<br/>Interview with<br/><span className="text-brand-lt">Confidence</span>
-          </h1>
-          <p className="text-base sm:text-lg text-muted leading-relaxed max-w-md mb-8">
-            PrepMate analyses your resume and runs realistic mock interviews to give you personalised, actionable feedback — instantly.
-          </p>
-          <div className="flex flex-wrap gap-3 mb-8">
-            <Button size="lg" onClick={() => navigate('/signup')}>Get Started Free</Button>
-            <Button 
-              variant="ghost" 
-              size="lg" 
-              className="flex items-center gap-2"
-              onClick={() => setShowVideoModal(true)}
-            >
-              <Play className="w-4 h-4 fill-current" /> Watch Demo
-            </Button>
-          </div>
-          <div className="flex items-center gap-3 text-ghost text-sm">
-            <div className="flex">
-              {[1, 2, 3].map((_, i) => (
-                <div 
-                  key={i} 
-                  className="w-7 h-7 rounded-full bg-card2 border-2 border-deep flex items-center justify-center bg-gray-100 text-gray-500" 
-                  style={{ marginLeft: i ? -10 : 0, zIndex: 10 - i }}
-                >
-                  <User className="w-3.5 h-3.5" />
-                </div>
-              ))}
-            </div>
-            Join 10,000+ candidates hired this year
-          </div>
+      <section className="relative overflow-hidden">
+        {/* ambient glow — signature moment, matches the rest of the app */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-40 -top-40 h-[480px] w-[480px] rounded-full bg-brand/15 blur-[120px]" />
+          <div className="absolute right-[-120px] top-40 h-72 w-72 rounded-full bg-brand-lt/10 blur-[100px]" />
         </div>
 
-        {/* Hero card with Background Image */}
-        <div className="relative animate-fade-up" style={{ animationDelay: '0.15s' }}>
-          <div className="relative bg-card rounded-2xl border border-bdr overflow-hidden aspect-[4/3] flex items-center justify-center shadow-2xl">
-            <img 
-              src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=800&q=80" 
-              alt="Professional Interview Environment" 
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-brand/40" />
-            
-            <div className="text-center px-10 relative z-10">
-              <Target className="w-16 h-16 mx-auto mb-4 text-brand-lt" />
-              <p className="font-sora text-xl font-bold mb-2 text-white">AI Interview Session</p>
-              <p className="text-gray-300 text-sm">Live feedback in real-time</p>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
+          <div className="animate-fade-up">
+            <Badge color="blue" className="mb-5">AI-Powered Career Coach</Badge>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight mb-6">
+              Ace Your Next<br/>Interview with<br/>
+              <span className="bg-gradient-to-r from-brand-lt to-brand bg-clip-text text-transparent">Confidence</span>
+            </h1>
+            <p className="text-base sm:text-lg text-muted leading-relaxed max-w-md mb-8">
+              PrepMate analyses your resume and runs realistic mock interviews to give you personalised, actionable feedback — instantly.
+            </p>
+            <div className="flex flex-wrap gap-3 mb-8">
+              <Button size="lg" onClick={() => navigate('/signup')} className="group shadow-lg shadow-brand/20">
+                Get Started Free
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="lg" 
+                className="flex items-center gap-2"
+                onClick={() => setShowVideoModal(true)}
+              >
+                <Play className="w-4 h-4 fill-current" /> Watch Demo
+              </Button>
             </div>
+            <div className="flex items-center gap-3 text-ghost text-sm">
+              <div className="flex">
+                {[1, 2, 3].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="w-7 h-7 rounded-full bg-card2 border-2 border-deep flex items-center justify-center bg-gray-100 text-gray-500" 
+                    style={{ marginLeft: i ? -10 : 0, zIndex: 10 - i }}
+                  >
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                ))}
+              </div>
+              Join 10,000+ candidates hired this year
+            </div>
+          </div>
 
-            <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2.5 z-10 shadow-lg">
-              <p className="text-[11px] text-gray-400 mb-0.5 uppercase tracking-wide">Live Analysis</p>
-              <p className="text-sm font-bold text-white">
-                Speaking Pace: <span className="text-green-400">Perfect (140 wpm)</span>
-              </p>
+          {/* Hero card with Background Image */}
+          <div className="relative animate-fade-up" style={{ animationDelay: '0.15s' }}>
+            <div className="relative bg-card rounded-2xl border border-bdr overflow-hidden aspect-[4/3] flex items-center justify-center shadow-2xl">
+              <img 
+                src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=800&q=80" 
+                alt="Professional Interview Environment" 
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-brand/40" />
+              
+              <div className="text-center px-10 relative z-10">
+                <Target className="w-16 h-16 mx-auto mb-4 text-brand-lt" />
+                <p className="font-sora text-xl font-bold mb-2 text-white">AI Interview Session</p>
+                <p className="text-gray-300 text-sm">Live feedback in real-time</p>
+              </div>
+
+              <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2.5 z-10 shadow-lg">
+                <p className="text-[11px] text-gray-400 mb-0.5 uppercase tracking-wide flex items-center gap-1.5">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400" />
+                  </span>
+                  Live Analysis
+                </p>
+                <p className="text-sm font-bold text-white">
+                  Speaking Pace: <span className="text-green-400">Perfect (140 wpm)</span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Trusted by */}
-      <section className="border-y border-bdr py-8 px-4 text-center">
+      <section className="border-y border-bdr py-8 px-4 text-center overflow-hidden">
         <p className="text-[11px] text-ghost tracking-[3px] uppercase mb-5">Trusted by candidates who landed roles at</p>
-        <div className="flex flex-wrap justify-center gap-8 sm:gap-14">
+        <div
+          className="flex flex-wrap justify-center gap-8 sm:gap-14"
+          style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}
+        >
           {['Google', 'Amazon', 'Microsoft', 'Spotify', 'Netflix'].map(c => (
-            <span key={c} className="font-sora font-bold text-ghost text-lg tracking-tight">{c}</span>
+            <span key={c} className="font-sora font-bold text-ghost text-lg tracking-tight transition-colors hover:text-muted cursor-default">{c}</span>
           ))}
         </div>
       </section>
@@ -179,8 +203,10 @@ const LandingPage = () => {
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {FEATURES.map(f => (
-            <Card key={f.title} hover className="p-7">
-              <div className="mb-5">{f.icon}</div>
+            <Card key={f.title} hover className="p-7 group transition-all duration-200 hover:border-brand-lt/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.25)]">
+              <div className="mb-5 w-12 h-12 rounded-xl bg-brand/10 border border-brand/10 flex items-center justify-center transition-colors group-hover:bg-brand/15">
+                {f.icon}
+              </div>
               <h3 className="font-bold text-lg mb-3">{f.title}</h3>
               <p className="text-muted text-sm leading-relaxed">{f.desc}</p>
             </Card>
@@ -189,11 +215,11 @@ const LandingPage = () => {
       </section>
 
       {/* Stats */}
-      <section className="bg-gradient-to-r from-brand/8 to-brand/3 border-y border-bdr py-16 px-4">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {STATS.map(s => (
-            <div key={s.l} className="text-center">
-              <p className="text-5xl font-black font-sora text-brand-lt mb-2">{s.v}</p>
+      <section className="relative bg-gradient-to-r from-brand/8 to-brand/3 border-y border-bdr py-16 px-4 overflow-hidden">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8 relative">
+          {STATS.map((s, i) => (
+            <div key={s.l} className={`text-center ${i > 0 ? 'lg:border-l lg:border-bdr/60' : ''}`}>
+              <p className="text-5xl font-black font-sora bg-gradient-to-br from-brand-lt to-brand bg-clip-text text-transparent mb-2">{s.v}</p>
               <p className="text-muted text-sm">{s.l}</p>
             </div>
           ))}
@@ -205,13 +231,16 @@ const LandingPage = () => {
         <h2 className="text-3xl sm:text-4xl font-black mb-4">Your path to hired in 3 steps</h2>
         <p className="text-muted mb-16">Simple, effective, and designed to get you results fast.</p>
         <div className="grid sm:grid-cols-3 gap-12 relative">
+          {/* connecting path — this really is a sequence, so the line earns its place */}
+          <div className="hidden sm:block absolute top-8 left-[16.67%] right-[16.67%] h-px bg-gradient-to-r from-brand/40 via-brand-lt/40 to-brand/40" />
           {STEPS.map((s) => (
-            <div key={s.n} className="flex flex-col items-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand to-brand-lt flex items-center justify-center mb-5 shadow-[0_0_32px_rgba(37,99,235,0.35)]">
+            <div key={s.n} className="flex flex-col items-center relative">
+              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-brand to-brand-lt flex items-center justify-center mb-5 shadow-[0_0_32px_rgba(37,99,235,0.35)] ring-8 ring-deep">
                 {s.icon}
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-card border border-bdr2 text-[10px] font-black flex items-center justify-center text-txt">{s.n}</span>
               </div>
               <h3 className="font-bold text-base mb-3">{s.title}</h3>
-              <p className="text-muted text-sm leading-relaxed">{s.desc}</p>
+              <p className="text-muted text-sm leading-relaxed max-w-[240px]">{s.desc}</p>
             </div>
           ))}
         </div>
@@ -223,16 +252,18 @@ const LandingPage = () => {
           <h2 className="text-3xl sm:text-4xl font-black text-center mb-14">What Our Users Say</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {testimonials.map((t, idx) => (
-              <Card key={t.id || idx} className="p-7 flex flex-col gap-5 text-center items-center">
-                <div className="flex gap-1 text-amber-400 justify-center">
+              <Card key={t.id || idx} className="relative p-7 flex flex-col gap-5 text-center items-center overflow-hidden">
+                <Quote className="absolute -top-2 -left-2 w-16 h-16 text-bdr2/40" strokeWidth={1} />
+
+                <div className="flex gap-1 text-amber-400 justify-center relative">
                   {[...Array(t.stars)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-current" />
                   ))}
                 </div>
                 
-                <p className="text-muted text-sm leading-relaxed flex-1">"{t.text}"</p>
+                <p className="text-muted text-sm leading-relaxed flex-1 relative">"{t.text}"</p>
                 
-                <div className="pt-2 border-t border-bdr2/50 mt-auto flex flex-col items-center gap-3">
+                <div className="pt-2 border-t border-bdr2/50 mt-auto flex flex-col items-center gap-3 relative">
                   {t.avatarUrl ? (
                     <img src={t.avatarUrl} alt={t.name} className="w-12 h-12 rounded-full object-cover border border-bdr" />
                   ) : (
@@ -252,15 +283,22 @@ const LandingPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-4 text-center max-w-2xl mx-auto">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand to-brand-lt flex items-center justify-center text-white mx-auto mb-7 shadow-[0_0_40px_rgba(37,99,235,0.4)]">
-          <Rocket className="w-8 h-8" />
-        </div>
-        <h2 className="text-3xl sm:text-4xl font-black mb-5">Ready to ace your interview?</h2>
-        <p className="text-muted mb-10 leading-relaxed">Join thousands of job seekers who transformed their interview game with PrepMate's AI coaching.</p>
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Button size="lg" onClick={() => navigate('/signup')}>Start for Free</Button>
-          <Button variant="outline" size="lg" onClick={() => navigate('/premium')}>View Pricing</Button>
+      <section className="relative py-24 px-4 text-center max-w-2xl mx-auto overflow-hidden">
+        <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-brand/15 blur-[100px]" />
+        <div className="relative">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand to-brand-lt flex items-center justify-center text-white mx-auto mb-7 shadow-[0_0_40px_rgba(37,99,235,0.4)]">
+            <Rocket className="w-8 h-8" />
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black mb-5">Ready to ace your interview?</h2>
+          <p className="text-muted mb-10 leading-relaxed">Join thousands of job seekers who transformed their interview game with PrepMate's AI coaching.</p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Button size="lg" onClick={() => navigate('/signup')} className="shadow-lg shadow-brand/20">Start for Free</Button>
+            <Button variant="outline" size="lg" onClick={() => navigate('/premium')}>View Pricing</Button>
+          </div>
+          <div className="flex items-center justify-center gap-5 mt-8 text-xs text-ghost">
+            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> No credit card required</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> Cancel anytime</span>
+          </div>
         </div>
       </section>
 

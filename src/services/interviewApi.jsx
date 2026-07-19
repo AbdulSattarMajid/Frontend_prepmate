@@ -7,7 +7,6 @@ export const interviewApi = {
     return res.json();
   },
 
-  // --- WAKE UP PING ---
   wakeUpAI: async () => {
     try {
       await fetch(`${AI_BASE_URL}/reset`, { 
@@ -20,7 +19,6 @@ export const interviewApi = {
     }
   },
 
-  // Generates question dynamically using query parameters
   generateQuestion: async (name, role, level, qType, qIndex) => {
     const res = await fetch(`${AI_BASE_URL}/question/generate?q_type=${qType}&question_index=${qIndex}`, {
       method: 'POST',
@@ -44,7 +42,6 @@ export const interviewApi = {
   },
 
   // Submits Voice and context via multipart/form-data
-  // 🌟 UPDATED: Now accepts questionIndex at the very end of the parameters!
   processVoiceAnswer: async (audioBlob, frames, question, role, level, expectedPoints, qType, questionIndex) => {
     const formData = new FormData();
     formData.append('file', audioBlob, 'answer.wav');

@@ -4,17 +4,17 @@ import Badge from '../../components/ui/Badge';
 import StatCard from '../../components/ui/StatCard';
 import Card from '../../components/ui/Card';
 import Avatar from '../../components/ui/Avatar';
-import { Shield, Users, CreditCard, DollarSign, TrendingDown, Wrench, Star, MessageSquare, Send, Radio, ShieldAlert } from 'lucide-react';
-import { io } from 'socket.io-client'; // 🌟 NEW: Socket import
+import { Shield, Users, CreditCard, DollarSign, TrendingDown, Wrench, Star, MessageSquare, Send, Radio, ShieldAlert, Mail, Inbox } from 'lucide-react';
+import { io } from 'socket.io-client'; 
 
-const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL || 'http://localhost:5000';
 
 const AdminPage = ({ onNav }) => {
-  const { token, user } = useApp(); // 🌟 Grabbed 'user' to know who the admin is
+  const { token, user } = useApp(); 
   const [section, setSection] = useState('overview');
   
-  // 🌟 ADDED 'support' to the tabs
-  const SECTIONS = ['overview','users','reviews','support','settings'];
+  // 🌟 ADDED 'inbox' to the tabs for the offline contact forms
+  const SECTIONS = ['overview','users','reviews','support','inbox','settings'];
 
   // Users State
   const [usersList, setUsersList] = useState([]);
@@ -24,7 +24,11 @@ const AdminPage = ({ onNav }) => {
   const [reviewsList, setReviewsList] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
-  // 🌟 NEW: Admin Live Chat State
+  // 🌟 NEW: Contact Messages State (Footer Form)
+  const [contactMessages, setContactMessages] = useState([]);
+  const [loadingContact, setLoadingContact] = useState(false);
+
+  // Admin Live Chat State
   const [socket, setSocket] = useState(null);
   const [activeChatUser, setActiveChatUser] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
@@ -32,7 +36,7 @@ const AdminPage = ({ onNav }) => {
   const [broadcastInput, setBroadcastInput] = useState('');
   const messagesEndRef = useRef(null);
 
-  // Fetch Real Users (Used for Overview, Users Tab, AND Support Tab)
+  // Fetch Real Users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -74,17 +78,38 @@ const AdminPage = ({ onNav }) => {
     if (token && section === 'reviews') fetchReviews();
   }, [token, section]);
 
-  // 🌟 NEW: Initialize Admin Socket Connection
+  // 🌟 NEW: Fetch Contact/Support Form Messages
+  useEffect(() => {
+    const fetchContactMessages = async () => {
+      setLoadingContact(true);
+      try {
+        // We pass the token just in case you secured the route with middleware
+        const res = await fetch(`${BASE_URL}/api/contact`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setContactMessages(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch contact messages", err);
+      } finally {
+        setLoadingContact(false);
+      }
+    };
+
+    if (section === 'inbox') fetchContactMessages();
+  }, [section, token]);
+
+  // Initialize Admin Socket Connection
   useEffect(() => {
     const newSocket = io(BASE_URL);
     setSocket(newSocket);
 
-    // Listen for chat history when we click a user
     newSocket.on('chat-history', (historyData) => {
       setChatMessages(historyData);
     });
 
-    // Listen for live incoming messages in the room we are viewing
     newSocket.on('receive-support-message', (data) => {
       setChatMessages((prev) => [...prev, data]);
     });
@@ -144,22 +169,20 @@ const AdminPage = ({ onNav }) => {
     }
   };
 
-  // 🌟 NEW: Admin selects a user to chat with
   const handleSelectChatUser = (student) => {
     setActiveChatUser(student);
-    setChatMessages([]); // Clear screen while loading
-    socket.emit('join-support-room', student._id); // Join their specific private room
+    setChatMessages([]); 
+    socket.emit('join-support-room', student._id); 
   };
 
-  // 🌟 NEW: Admin sends a private reply
   const handleAdminSend = (e) => {
     e.preventDefault();
     if (!chatInput.trim() || !socket || !activeChatUser) return;
 
     const messageData = {
-      roomId: activeChatUser._id, // Send to this specific student's room
+      roomId: activeChatUser._id, 
       text: chatInput,
-      senderId: user._id, // Admin's ID
+      senderId: user._id, 
       senderName: "PrepMate Admin",
       isAdmin: true
     };
@@ -168,7 +191,6 @@ const AdminPage = ({ onNav }) => {
     setChatInput('');
   };
 
-  // 🌟 NEW: Admin fires a Global Broadcast
   const handleBroadcast = (e) => {
     e.preventDefault();
     if (!broadcastInput.trim() || !socket) return;
@@ -365,11 +387,10 @@ const AdminPage = ({ onNav }) => {
         </div>
       )}
 
-      {/* 🌟 NEW: LIVE SUPPORT / CHAT COMMAND CENTER */}
+      {/* LIVE SUPPORT / CHAT COMMAND CENTER */}
       {section === 'support' && (
         <div className="animate-fade-in-up h-[700px] flex flex-col gap-4">
           
-          {/* Global Broadcast Bar */}
           <Card className="p-4 flex gap-4 items-center bg-red-500/5 border-red-500/20 shrink-0">
             <Radio className="w-6 h-6 text-red-500" />
             <form onSubmit={handleBroadcast} className="flex-1 flex gap-2">
@@ -390,10 +411,7 @@ const AdminPage = ({ onNav }) => {
             </form>
           </Card>
 
-          {/* Two-Pane Chat Interface */}
           <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
-            
-            {/* Left Pane: User List */}
             <div className="w-full md:w-1/3 bg-card border border-bdr rounded-xl overflow-hidden flex flex-col">
               <div className="p-4 border-b border-bdr bg-card2 shrink-0">
                 <h3 className="font-bold text-sm">Inbox (Select User)</h3>
@@ -425,7 +443,6 @@ const AdminPage = ({ onNav }) => {
               </div>
             </div>
 
-            {/* Right Pane: Active Chat Window */}
             <div className="w-full md:w-2/3 bg-card2 border border-bdr rounded-xl flex flex-col overflow-hidden">
               {activeChatUser ? (
                 <>
@@ -437,7 +454,6 @@ const AdminPage = ({ onNav }) => {
                     </div>
                   </div>
 
-                  {/* Chat Messages */}
                   <div className="flex-1 p-4 overflow-y-auto space-y-4">
                     {chatMessages.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-muted">
@@ -450,8 +466,8 @@ const AdminPage = ({ onNav }) => {
                           <div 
                             className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm ${
                               msg.isAdmin 
-                                ? 'bg-brand text-white rounded-tr-sm' // Admin replies look like 'my' messages here
-                                : 'bg-card border border-bdr text-txt rounded-tl-sm' // Student messages look incoming
+                                ? 'bg-brand text-white rounded-tr-sm' 
+                                : 'bg-card border border-bdr text-txt rounded-tl-sm' 
                             }`}
                           >
                             {msg.text}
@@ -467,7 +483,6 @@ const AdminPage = ({ onNav }) => {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Chat Input */}
                   <form onSubmit={handleAdminSend} className="p-3 bg-card border-t border-bdr flex gap-2 shrink-0">
                     <input 
                       type="text"
@@ -497,8 +512,59 @@ const AdminPage = ({ onNav }) => {
         </div>
       )}
 
-      {/* Fallback for other unfinished sections */}
-      {(section === 'users' || section === 'settings') && (
+      {/* 🌟 NEW: INBOX SECTION (For Footer Contact Form) */}
+      {section === 'inbox' && (
+        <div className="animate-fade-in-up">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Inbox className="w-5 h-5 text-brand" /> Offline Inquiries
+              </h2>
+              <p className="text-sm text-muted mt-1">Support messages sent from the public footer form.</p>
+            </div>
+            <Badge color="blue">{contactMessages.length} Messages</Badge>
+          </div>
+
+          {loadingContact ? (
+            <Card className="py-20 text-center animate-pulse">
+              <p className="text-muted">Loading messages...</p>
+            </Card>
+          ) : contactMessages.length === 0 ? (
+            <Card className="py-20 text-center">
+              <Mail className="w-12 h-12 mx-auto mb-4 text-bdr2" />
+              <p className="font-bold text-lg mb-2">Inbox Empty</p>
+              <p className="text-muted text-sm">No contact messages have been submitted yet.</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {contactMessages.map(msg => (
+                <Card key={msg._id} className="p-5 flex flex-col md:flex-row gap-4 border border-bdr hover:border-bdr2 transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                    <Mail className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-bold text-txt">{msg.name}</h3>
+                        <a href={`mailto:${msg.email}`} className="text-xs text-brand-lt hover:underline">{msg.email}</a>
+                      </div>
+                      <span className="text-xs text-ghost font-mono">
+                        {new Date(msg.createdAt).toLocaleDateString()} {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="bg-card2 p-4 rounded-lg text-sm text-muted border border-bdr2 whitespace-pre-wrap">
+                      {msg.message}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fallback for Settings */}
+      {section === 'settings' && (
         <Card className="py-20 text-center animate-fade-in-up">
           <Wrench className="w-12 h-12 mx-auto mb-4 text-muted" />
           <p className="font-bold text-lg mb-2 capitalize">{section} Management</p>

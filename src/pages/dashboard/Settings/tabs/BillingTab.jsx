@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../../../context/AppContext'; // Adjust path if needed based on your folder structure
 
+const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
+
 const BillingTab = () => {
-  const { user } = useApp();
+  const { user, token, setUser } = useApp(); // Grab token and setUser!
   const navigate = useNavigate();
+  const [loadingCancel, setLoadingCancel] = useState(false);
 
   // 1. Get the current plan from the user object, default to 'Basic' if undefined
   const currentPlanName = user?.plan || 'Basic';
 
-  // 2. Define the dynamic details for each plan to match your PremiumPage
+  // 2. Define the dynamic details for each plan
   const planDetails = {
     'Basic': {
       price: '$0',
@@ -27,10 +31,51 @@ const BillingTab = () => {
       desc: 'Everything in Pro + 1-on-1 Mentor Matching and Custom Portfolio Reviews.',
       isPaid: true,
       color: 'bg-purple-500'
+    },
+    'Recruiter': { // 🌟 Added missing Recruiter plan!
+      price: '$49',
+      desc: 'Unlock Candidate Profiles, Advanced Search Filters, and 10,000 Token Cap.',
+      isPaid: true,
+      color: 'bg-orange-500'
     }
   };
 
   const planInfo = planDetails[currentPlanName] || planDetails['Basic'];
+
+  // 🌟 The Cancel Plan Function
+  const handleCancelPlan = async () => {
+    if (!window.confirm("Are you sure you want to cancel your premium plan? You will be downgraded to Basic immediately.")) return;
+
+    setLoadingCancel(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/payments/cancel-plan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // Instantly update the frontend state!
+        setUser(prev => ({
+          ...prev,
+          plan: data.plan, // Will be "Basic"
+          maxTokens: data.maxTokens, // Will drop to 200
+          role: prev.role === 'recruiter' ? 'candidate' : prev.role
+        }));
+        alert("Plan successfully canceled. You are now on the Basic plan.");
+      } else {
+        alert(data.message || "Failed to cancel plan.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error while trying to cancel.");
+    } finally {
+      setLoadingCancel(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -60,8 +105,12 @@ const BillingTab = () => {
           {planInfo.isPaid ? (
             <>
               {/* For Paid Users */}
-              <button className="px-5 py-2 bg-card border border-bdr text-txt text-sm font-semibold rounded-lg hover:border-brand transition-colors">
-                Cancel Subscription
+              <button 
+                onClick={handleCancelPlan}
+                disabled={loadingCancel}
+                className="px-5 py-2 bg-card border border-red-500/50 text-red-500 hover:bg-red-500/10 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingCancel ? 'Canceling...' : 'Cancel Subscription'}
               </button>
               <button className="px-5 py-2 bg-brand hover:bg-brand-lt text-white text-sm font-semibold rounded-lg transition-colors">
                 Update Payment Method

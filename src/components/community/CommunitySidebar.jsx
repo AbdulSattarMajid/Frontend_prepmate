@@ -1,8 +1,9 @@
 import Button from '../ui/Button';
+import { MessageSquare, Flame } from 'lucide-react';
 
 const MENU_ITEMS = [
-  { id: 'all', icon: '💬', label: 'All Discussions' },
-  { id: 'popular', icon: '🔥', label: 'Popular' },
+  { id: 'all', icon: MessageSquare, label: 'All Discussions' },
+  { id: 'popular', icon: Flame, label: 'Popular' },
 ];
 
 const TOPICS = [
@@ -42,15 +43,21 @@ const CommunitySidebar = ({
       <div>
         <p className="text-[11px] font-bold text-ghost tracking-widest uppercase mb-3 px-3">Menu</p>
         <div className="space-y-1">
-          {MENU_ITEMS.map(item => (
-            <button 
-              key={item.id} 
-              onClick={() => handleMenuClick(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors border-0 ${activeMenu === item.id ? 'bg-card text-txt font-semibold' : 'bg-transparent text-muted hover:text-txt hover:bg-card/50'}`}
-            >
-              <span className="text-base">{item.icon}</span> {item.label}
-            </button>
-          ))}
+          {MENU_ITEMS.map(item => {
+            // Assign the icon component to a capitalized variable so React knows it's a component
+            const Icon = item.icon; 
+            
+            return (
+              <button 
+                key={item.id} 
+                onClick={() => handleMenuClick(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors border-0 cursor-pointer ${activeMenu === item.id ? 'bg-card text-txt font-semibold' : 'bg-transparent text-muted hover:text-txt hover:bg-card/50'}`}
+              >
+                <Icon className="w-5 h-5" strokeWidth={2.5} /> 
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -61,10 +68,10 @@ const CommunitySidebar = ({
             <button 
               key={t.label} 
               onClick={() => handleTopicClick(t.label)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors border-0 ${activeTopic === t.label ? 'bg-card text-txt font-semibold' : 'bg-transparent text-muted hover:text-txt hover:bg-card/50'}`}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors border-0 cursor-pointer ${activeTopic === t.label ? 'bg-card text-txt font-semibold' : 'bg-transparent text-muted hover:text-txt hover:bg-card/50'}`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: t.dot }} />
+                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ background: t.dot }} />
                 <span>{t.label}</span>
               </div>
             </button>

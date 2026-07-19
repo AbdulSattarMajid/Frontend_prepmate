@@ -13,12 +13,15 @@ import {
   MessageSquare, 
   Bookmark, 
   TrendingUp, 
-  FileText 
+  FileText,
+  Coins,
+  Briefcase,
+  Users
 } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_AUTH_BASE_URL;
 
-// 🌟 THE ADMIN DASHBOARD VIEW
+// --- 1. ADMIN DASHBOARD VIEW ---
 const AdminDashboardView = ({ user }) => {
   return (
     <div className="p-5 md:p-8 animate-fade-up space-y-6">
@@ -50,13 +53,108 @@ const AdminDashboardView = ({ user }) => {
   );
 };
 
+// --- 2. RECRUITER DASHBOARD VIEW (UPDATED) ---
+const RecruiterDashboardView = ({ user, onNav }) => {
+  const { token } = useApp(); // Need token for API call
+  const [recruiterStats, setRecruiterStats] = useState({
+    activeJobs: 0,
+    totalApplications: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch jobs to calculate live recruiter stats
+  useEffect(() => {
+    const fetchRecruiterStats = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch(`${BASE_URL}/api/jobs`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          // 1. Filter jobs to ONLY the ones this specific recruiter posted
+          const myJobs = data.data.filter(job => 
+            job.postedBy?._id === user?._id || job.postedBy === user?._id
+          );
+          
+          // 2. Count all applications across all of their jobs
+          const totalApps = myJobs.reduce((sum, job) => sum + (job.applications?.length || 0), 0);
+
+          setRecruiterStats({
+            activeJobs: myJobs.length,
+            totalApplications: totalApps
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching recruiter stats:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecruiterStats();
+  }, [token, user]);
+
+  return (
+    <div className="p-5 md:p-8 animate-fade-up space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between border-b border-bdr pb-6">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl md:text-3xl font-black flex items-center gap-2">
+              Recruiter Workspace <Briefcase className="w-6 h-6 text-brand" />
+            </h1>
+            <Badge color={user?.role === 'hr' ? 'orange' : 'green'}>
+              {user?.role === 'hr' ? 'HR Professional' : 'Recruiter'}
+            </Badge>
+          </div>
+          <p className="text-muted text-sm">Manage job postings, search top talent, and view ATS-matched candidates.</p>
+        </div>
+        
+        <div className="flex gap-2.5">
+          <Button onClick={() => onNav('jobs')} className="flex items-center gap-2 bg-brand hover:bg-brand-lt text-white border-0">
+            <Briefcase className="w-4 h-4" /> Post a Job
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Updated with live dynamic stats */}
+        <StatCard label="Active Job Posts" value={isLoading ? '-' : recruiterStats.activeJobs} icon={<Briefcase className="w-5 h-5 text-blue-500" />} />
+        <StatCard label="Total Applications" value={isLoading ? '-' : recruiterStats.totalApplications} icon={<FileText className="w-5 h-5 text-purple-500" />} />
+        <StatCard label="Shortlisted Talent" value="0" icon={<Users className="w-5 h-5 text-green-500" />} />
+        <StatCard label="Available Tokens" value={user?.tokens || 0} icon={<Coins className="w-5 h-5 text-yellow-500" />} />
+      </div>
+
+      {recruiterStats.activeJobs === 0 && !isLoading ? (
+        <Card className="p-8 text-center border-dashed mt-6 bg-card/30">
+          <Users className="w-10 h-10 mx-auto mb-3 text-muted" />
+          <p className="font-bold text-txt mb-1">Candidate Pipeline</p>
+          <p className="text-muted text-sm mb-4">You haven't posted any jobs yet. Create a listing to start receiving ATS-scored resumes from candidates.</p>
+          <Button size="sm" onClick={() => onNav('jobs')}>Go to Job Board</Button>
+        </Card>
+      ) : (
+        <Card className="p-8 text-center border-dashed mt-6 bg-card/30">
+          <Users className="w-10 h-10 mx-auto mb-3 text-brand" />
+          <p className="font-bold text-txt mb-1">Your Job Board is Active</p>
+          <p className="text-muted text-sm mb-4">You currently have {recruiterStats.activeJobs} active postings. Head over to the Job Board to review incoming candidate applications.</p>
+          <Button size="sm" onClick={() => onNav('jobs')}>Manage Jobs & Applicants</Button>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+// --- 3. MAIN DASHBOARD CONTROLLER ---
 const DashboardHome = ({ onNav }) => {
-  const { user, token } = useApp();
+  const { user, token, claimDailyReward } = useApp();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('my_discussions');
-  
   const [allPosts, setAllPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [claiming, setClaiming] = useState(false);
+
+  const hasClaimedToday = user?.lastDailyRewardDate && new Date(user.lastDailyRewardDate).toDateString() === new Date().toDateString();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -75,25 +173,34 @@ const DashboardHome = ({ onNav }) => {
     fetchDashboardData();
   }, []);
 
+  const handleClaimReward = async () => {
+    setClaiming(true);
+    const res = await claimDailyReward();
+    if (!res.success) {
+      alert(res.message);
+    }
+    setClaiming(false);
+  };
+
+  // 🌟 ROLE ROUTING LOGIC
   if (user?.role === 'admin') {
     return <AdminDashboardView user={user} />;
   }
 
+  // 🌟 HR and Recruiters
+  if (user?.role === 'hr' || user?.role === 'recruiter') {
+    return <RecruiterDashboardView user={user} onNav={onNav} />;
+  }
+
+  // --- CANDIDATE VIEW LOGIC (Default) ---
   const myPosts = allPosts.filter(p => p.author?._id === user?._id);
   const savedPosts = allPosts.filter(p => user?.savedPosts?.includes(p._id));
-
-  // 🌟 THE FIX: Removed the fake "livePoints" math. 
   const totalUpvotesReceived = myPosts.reduce((sum, post) => sum + (post.upvotes?.length || 0), 0);
 
   const renderRoleBadge = () => {
     if (user?.plan === 'Elite') return <Badge color="purple">Elite Member</Badge>;
     if (user?.plan === 'Pro') return <Badge color="blue">Pro Member</Badge>;
-
-    switch(user?.role) {
-      case 'hr': return <Badge color="orange">HR Professional</Badge>;
-      case 'recruiter': return <Badge color="green">Recruiter</Badge>;
-      default: return <Badge color="ghost">Student / Candidate</Badge>;
-    }
+    return <Badge color="ghost">Student / Candidate</Badge>;
   };
 
   const handleDeletePost = async (e, postId) => {
@@ -123,7 +230,6 @@ const DashboardHome = ({ onNav }) => {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-2xl md:text-3xl font-black flex items-center gap-2">
-              {/* 🌟 THE FIX: Now shows the full name instead of just the first word */}
               Welcome back, {user?.name || 'Candidate'} 
               <Hand className="w-6 h-6 text-yellow-500" />
             </h1>
@@ -132,7 +238,17 @@ const DashboardHome = ({ onNav }) => {
           <p className="text-muted text-sm">Track your interview readiness and community impact.</p>
         </div>
         
-        <div className="flex gap-2.5 flex-shrink-0">
+        <div className="flex flex-wrap gap-2.5 flex-shrink-0">
+          <Button 
+            variant={hasClaimedToday ? "ghost" : "primary"} 
+            size="sm" 
+            onClick={handleClaimReward} 
+            disabled={hasClaimedToday || claiming}
+            className={`flex items-center gap-2 ${!hasClaimedToday && 'bg-amber-500 hover:bg-amber-600 text-white border-0'}`}
+          >
+            <Coins className="w-4 h-4" /> 
+            {claiming ? 'Claiming...' : hasClaimedToday ? 'Reward Claimed' : 'Claim Daily Tokens'}
+          </Button>
           <Button variant="secondary" size="sm" onClick={() => onNav('learning')} className="flex items-center gap-2">
             <Brain className="w-4 h-4" /> Practice Quiz
           </Button>
@@ -143,7 +259,6 @@ const DashboardHome = ({ onNav }) => {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 🌟 THE FIX: Now strictly uses your official database points! */}
         <StatCard label="Community Points" value={user?.points || 0} icon={<Trophy className="w-5 h-5 text-yellow-500" />} />
         <StatCard label="My Discussions" value={loading ? '-' : myPosts.length} icon={<MessageSquare className="w-5 h-5 text-blue-500" />} />
         <StatCard label="Saved Bookmarks" value={user?.savedPosts?.length || 0} icon={<Bookmark className="w-5 h-5 text-purple-500" />} />
